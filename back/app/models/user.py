@@ -1,8 +1,8 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Enum as SQLEnum, DateTime
+from sqlalchemy import Column, Integer, String, ForeignKey, Enum as SQLEnum
 from sqlalchemy.orm import relationship
-from database import Base
-from datetime import datetime, timezone
 import enum
+
+from app.database import Base
 
 
 class UserRole(str, enum.Enum):
@@ -28,18 +28,9 @@ class User(Base):
     linked_psychologist_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     
     # Self-referencing relationships
-    psychologist = relationship("User", remote_side=[id], backref="patients", foreign_keys=[linked_psychologist_id])
-
-
-class Emotion(Base):
-    __tablename__ = "emotions"
-
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    emotion_type = Column(String, nullable=False)  # happy, sad, angry, etc.
-    intensity = Column(Integer, default=5)  # 1-10
-    note = Column(String, nullable=True)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    
-    # Relationship
-    user = relationship("User", backref="emotions")
+    psychologist = relationship(
+        "User", 
+        remote_side=[id], 
+        backref="patients", 
+        foreign_keys=[linked_psychologist_id]
+    )

@@ -1,23 +1,27 @@
 import bcrypt
 from datetime import datetime, timedelta, timezone
 from jose import jwt
-from config import settings
 
-# 1. Хеширование пароля
+from app.config import settings
+
+
 def get_password_hash(password: str) -> str:
+    """Хеширование пароля"""
     pwd_bytes = password.encode('utf-8')
     salt = bcrypt.gensalt()
     hashed_password = bcrypt.hashpw(pwd_bytes, salt)
     return hashed_password.decode('utf-8')
 
-# 2. Проверка пароля
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Проверка пароля"""
     password_byte_enc = plain_password.encode('utf-8')
     hashed_password_byte_enc = hashed_password.encode('utf-8')
     return bcrypt.checkpw(password_byte_enc, hashed_password_byte_enc)
 
-# 3. Создание JWT-токена
-def create_access_token(data: dict):
+
+def create_access_token(data: dict) -> str:
+    """Создание JWT-токена"""
     to_encode = data.copy()
     # Устанавливаем время жизни токена
     expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
