@@ -8,7 +8,8 @@ class UserRole(str, Enum):
 
 
 class UserCreate(BaseModel):
-    username: str
+    first_name: str
+    last_name: str
     email: EmailStr
     password: str
     role: UserRole = UserRole.USER
@@ -17,7 +18,8 @@ class UserCreate(BaseModel):
 
 class UserOut(BaseModel):
     id: int
-    username: str
+    first_name: str
+    last_name: str
     email: EmailStr
     role: UserRole
     psychologist_code: str | None = None  # Показываем только для психологов
@@ -29,7 +31,8 @@ class UserOut(BaseModel):
 class PatientOut(BaseModel):
     """Схема пациента для психолога"""
     id: int
-    username: str
+    first_name: str
+    last_name: str
     email: EmailStr
 
     class Config:

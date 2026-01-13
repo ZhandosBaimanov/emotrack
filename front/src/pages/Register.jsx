@@ -20,7 +20,8 @@ const Register = () => {
 
 	const [formData, setFormData] = useState({
 		email: '',
-		username: '',
+		first_name: '',
+		last_name: '',
 		password: '',
 		role: 'user',
 		link_code: '',
@@ -55,7 +56,8 @@ const Register = () => {
 		try {
 			const userData = {
 				email: formData.email,
-				username: formData.username,
+				first_name: formData.first_name,
+				last_name: formData.last_name,
 				password: formData.password,
 				role: formData.role,
 			}
@@ -126,15 +128,29 @@ const Register = () => {
 							/>
 						</div>
 
-						{/* Username */}
+						{/* First Name */}
 						<div className='relative'>
 							<User className='absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50' />
 							<input
 								type='text'
-								name='username'
-								value={formData.username}
+								name='first_name'
+								value={formData.first_name}
 								onChange={handleChange}
-								placeholder='Имя пользователя'
+								placeholder='Имя'
+								required
+								className='glass-input w-full pl-12'
+							/>
+						</div>
+
+						{/* Last Name */}
+						<div className='relative'>
+							<User className='absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50' />
+							<input
+								type='text'
+								name='last_name'
+								value={formData.last_name}
+								onChange={handleChange}
+								placeholder='Фамилия'
 								required
 								className='glass-input w-full pl-12'
 							/>

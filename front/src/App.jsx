@@ -6,6 +6,7 @@ import {
 } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
 import { AuthProvider } from './context/AuthContext'
+import Landing from './pages/Landing'
 import Login from './pages/Login'
 import PsychologistDashboard from './pages/PsychologistDashboard'
 import Register from './pages/Register'
@@ -17,6 +18,9 @@ function App() {
 			<Router>
 				<div className='min-h-screen'>
 					<Routes>
+						{/* Лендинг */}
+						<Route path='/' element={<Landing />} />
+
 						{/* Публичные маршруты */}
 						<Route path='/login' element={<Login />} />
 						<Route path='/register' element={<Register />} />
@@ -41,9 +45,8 @@ function App() {
 							}
 						/>
 
-						{/* Редирект на логин по умолчанию */}
-						<Route path='/' element={<Navigate to='/login' replace />} />
-						<Route path='*' element={<Navigate to='/login' replace />} />
+						{/* Редирект на лендинг для неизвестных маршрутов */}
+						<Route path='*' element={<Navigate to='/' replace />} />
 					</Routes>
 				</div>
 			</Router>
