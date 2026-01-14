@@ -4,13 +4,14 @@ import { defineConfig } from 'vite'
 export default defineConfig({
 	plugins: [react()],
 	server: {
-		port: 3000,
-		proxy: {
-			'/api': {
-				target: 'http://localhost:8000',
-				changeOrigin: true,
-				rewrite: path => path.replace(/^\/api/, ''),
-			},
+		port: 5173,
+		host: true,
+		open: true, // Автоматически открывает браузер
+		watch: {
+			usePolling: true, // Для Windows может помочь
+		},
+		hmr: {
+			overlay: true, // Показывает ошибки прямо в браузере
 		},
 	},
 })

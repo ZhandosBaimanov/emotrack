@@ -63,7 +63,7 @@ function Landing() {
 							</p>
 
 							{/* CTA Button */}
-							<Link to='/register'>
+							<Link to='/register' className='mt-8'>
 								<HoverBorderGradient
 									containerClassName='rounded-full'
 									as='div'

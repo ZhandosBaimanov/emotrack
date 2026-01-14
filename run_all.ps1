@@ -18,17 +18,28 @@ if (-not (Test-Path $VenvPython)) {
 
 function Start-Backend {
   $args = @('-m','uvicorn','app.main:app','--reload','--host','0.0.0.0','--port','8000')
-  Start-Process -FilePath $VenvPython -ArgumentList $args -WorkingDirectory $BackDir -WindowStyle Normal -Verb Open -PassThru | Out-Null
+  Start-Process -FilePath $VenvPython -ArgumentList $args -WorkingDirectory $BackDir -WindowStyle Normal -PassThru | Out-Null
   Write-Host "Backend starting on http://localhost:8000" -ForegroundColor Green
 }
 
 function Start-Frontend {
-  $cmd = if ($NoInstall -or (Test-Path (Join-Path $FrontDir 'node_modules'))) { 'npm run dev' } else { 'npm install && npm run dev' }
-  Start-Process -FilePath 'powershell' -ArgumentList "-NoExit","-Command","cd '$FrontDir'; $cmd" -WindowStyle Normal -Verb Open -PassThru | Out-Null
-  Write-Host "Frontend starting on http://localhost:3000" -ForegroundColor Green
+  if (-not $NoInstall -and -not (Test-Path (Join-Path $FrontDir 'node_modules'))) {
+    Write-Host "Installing frontend dependencies..." -ForegroundColor Yellow
+    Push-Location $FrontDir
+    npm install
+    Pop-Location
+  }
+  
+  # Start with --open flag to auto-open browser
+  Start-Process -FilePath 'powershell' -ArgumentList "-NoExit","-Command","cd '$FrontDir'; npm run dev -- --open" -WindowStyle Normal -PassThru | Out-Null
+  Write-Host "Frontend starting on http://localhost:5173 (will open in browser)" -ForegroundColor Green
 }
 
 Start-Backend
+Start-Sleep -Seconds 2
 Start-Frontend
 
-Write-Host "Both processes launched in separate windows." -ForegroundColor Cyan
+Write-Host "`nBoth processes launched in separate windows." -ForegroundColor Cyan
+Write-Host "Backend: http://localhost:8000" -ForegroundColor Gray
+Write-Host "Frontend: http://localhost:5173" -ForegroundColor Gray
+Write-Host "`nHot-reload is enabled - changes will appear automatically!" -ForegroundColor Green
