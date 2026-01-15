@@ -63,3 +63,18 @@ def get_patients_by_psychologist(db: Session, psychologist_id: int):
     return db.query(User).filter(
         User.linked_psychologist_id == psychologist_id
     ).all()
+
+
+def get_psychologist_by_patient(db: Session, patient_id: int):
+    """Получить психолога пациента"""
+    patient = db.query(User).filter(User.id == patient_id).first()
+    if patient and patient.linked_psychologist_id:
+        return db.query(User).filter(User.id == patient.linked_psychologist_id).first()
+    return None
+
+
+def get_all_psychologists(db: Session, limit: int = 10):
+    """Получить список всех психологов"""
+    return db.query(User).filter(
+        User.role == UserRole.PSYCHOLOGIST
+    ).limit(limit).all()
