@@ -1,0 +1,40 @@
+services:
+  db:
+    image: postgres:16
+    container_name: emotrack-db
+    environment:
+      POSTGRES_DB: emotrack
+      POSTGRES_USER: emotrack
+      POSTGRES_PASSWORD: emotrack
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - '5432:5432'
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: emotrack-backend
+    environment:
+      DATABASE_URL: postgresql+psycopg2://emotrack:emotrack@db:5432/emotrack
+      SECRET_KEY: vU@cfNMm5APQh9w
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: '30'
+    depends_on:
+      - db
+    ports:
+      - '8000:8000'
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.front
+    container_name: emotrack-frontend
+    depends_on:
+      - backend
+    ports:
+      - '5173:80'
+
+volumes:
+  pgdata:
