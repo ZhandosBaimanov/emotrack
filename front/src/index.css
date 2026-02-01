@@ -8,7 +8,12 @@ body {
 	margin: 0;
 	min-height: 100vh;
 	background: #1a1a2e;
-	font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+	font-family:
+		'Inter',
+		-apple-system,
+		BlinkMacSystemFont,
+		'Segoe UI',
+		Roboto,
 		sans-serif;
 }
 
@@ -71,4 +76,47 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
 	background: rgba(255, 255, 255, 0.5);
+}
+
+/* Анимации для модального окна */
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes scaleIn {
+	from {
+		opacity: 0;
+		transform: scale(0.95);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+
+@keyframes pulse-highlight {
+	0%,
+	100% {
+		box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4);
+	}
+	50% {
+		box-shadow: 0 0 0 8px rgba(139, 92, 246, 0);
+	}
+}
+
+.animate-fadeIn {
+	animation: fadeIn 300ms ease-out;
+}
+
+.animate-scaleIn {
+	animation: scaleIn 400ms ease-out;
+}
+
+.animate-pulse-highlight {
+	animation: pulse-highlight 2s ease-out;
 }

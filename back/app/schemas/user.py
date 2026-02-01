@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_serializer
 from enum import Enum
 
 
@@ -21,8 +21,15 @@ class UserOut(BaseModel):
     first_name: str
     last_name: str
     email: EmailStr
-    role: UserRole
+    role: str  # Изменено на str для правильной сериализации
     psychologist_code: str | None = None  # Показываем только для психологов
+
+    @field_serializer('role')
+    def serialize_role(self, role, _info):
+        """Сериализация роли в строку"""
+        if isinstance(role, Enum):
+            return role.value
+        return str(role)
 
     class Config:
         from_attributes = True
