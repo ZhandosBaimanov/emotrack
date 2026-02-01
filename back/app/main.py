@@ -10,9 +10,13 @@ from app.database import engine
 from app.models import User, Emotion  # noqa: F401 - нужно для создания таблиц
 from app.database import Base
 from app.routers import auth, users, emotions
+from app.init_db import init_db
 
 # Создаем таблицы
 Base.metadata.create_all(bind=engine)
+
+# Инициализируем тестовых пользователей
+init_db()
 
 app = FastAPI(title="Emotrack API")
 
@@ -26,9 +30,9 @@ app.add_middleware(
 )
 
 # Подключаем роутеры
-app.include_router(auth.router)
-app.include_router(users.router)
-app.include_router(emotions.router)
+app.include_router(auth.router, prefix="/api")
+app.include_router(users.router, prefix="/api")
+app.include_router(emotions.router, prefix="/api")
 
 # Serve static files in production
 static_dir = Path(__file__).resolve().parent.parent.parent / "front" / "dist"

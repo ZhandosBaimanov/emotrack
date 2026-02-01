@@ -83,25 +83,33 @@ const Register = () => {
 	}
 
 	return (
-		<div className='min-h-screen flex items-center justify-center p-4'>
-			<div className='w-full max-w-md'>
+		<section className='min-h-screen relative flex items-center justify-center p-4 py-4'>
+			{/* Background Circles */}
+			<div className='pointer-events-none absolute inset-0 right-0 overflow-hidden hidden md:block'>
+				{/* Outer big circle */}
+				<div className='absolute left-1/1 top-0 h-[2600px] w-[2600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/10' />
+				{/* Inner circle */}
+				<div className='absolute left-1/1 top-0 h-[700px] w-[700px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#0a0a0f]' />
+			</div>
+
+			<div className='w-full max-w-md relative z-10'>
 				{/* Логотип */}
-				<div className='text-center mb-8 animate-fade-in'>
-					<div className='inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-500/20 mb-4'>
-						<Heart className='w-8 h-8 text-primary-400' />
+				<div className='text-center mb-4 animate-fade-in'>
+					<div className='inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary-500/20 mb-3'>
+						<Heart className='w-6 h-6 text-primary-400' />
 					</div>
-					<h1 className='text-3xl font-bold text-white'>Emotrack</h1>
-					<p className='text-white/60 mt-2'>
+					<h1 className='text-2xl font-bold text-white'>Emotrack</h1>
+					<p className='text-white/60 mt-1 text-sm'>
 						Отслеживание эмоционального состояния
 					</p>
 				</div>
 
 				{/* Карточка регистрации */}
 				<div
-					className='glass-card p-8 animate-fade-in'
+					className='glass-card p-6 animate-fade-in'
 					style={{ animationDelay: '0.1s' }}
 				>
-					<h2 className='text-2xl font-semibold text-white mb-6 text-center'>
+					<h2 className='text-xl font-semibold text-white mb-4 text-center'>
 						Создать аккаунт
 					</h2>
 
@@ -113,10 +121,10 @@ const Register = () => {
 						</div>
 					)}
 
-					<form onSubmit={handleSubmit} className='space-y-4'>
+					<form onSubmit={handleSubmit} className='space-y-3'>
 						{/* Email */}
 						<div className='relative'>
-							<Mail className='absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50' />
+							<Mail className='absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50' />
 							<input
 								type='email'
 								name='email'
@@ -124,13 +132,13 @@ const Register = () => {
 								onChange={handleChange}
 								placeholder='Email'
 								required
-								className='glass-input w-full pl-12'
+								className='glass-input w-full pl-10 py-2.5'
 							/>
 						</div>
 
 						{/* First Name */}
 						<div className='relative'>
-							<User className='absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50' />
+							<User className='absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50' />
 							<input
 								type='text'
 								name='first_name'
@@ -138,13 +146,13 @@ const Register = () => {
 								onChange={handleChange}
 								placeholder='Имя'
 								required
-								className='glass-input w-full pl-12'
+								className='glass-input w-full pl-10 py-2.5'
 							/>
 						</div>
 
 						{/* Last Name */}
 						<div className='relative'>
-							<User className='absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50' />
+							<User className='absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50' />
 							<input
 								type='text'
 								name='last_name'
@@ -152,13 +160,13 @@ const Register = () => {
 								onChange={handleChange}
 								placeholder='Фамилия'
 								required
-								className='glass-input w-full pl-12'
+								className='glass-input w-full pl-10 py-2.5'
 							/>
 						</div>
 
 						{/* Password */}
 						<div className='relative'>
-							<Lock className='absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50' />
+							<Lock className='absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50' />
 							<input
 								type={showPassword ? 'text' : 'password'}
 								name='password'
@@ -167,48 +175,48 @@ const Register = () => {
 								placeholder='Пароль'
 								required
 								minLength={6}
-								className='glass-input w-full pl-12 pr-12'
+								className='glass-input w-full pl-10 pr-10 py-2.5'
 							/>
 							<button
 								type='button'
 								onClick={() => setShowPassword(!showPassword)}
-								className='absolute right-4 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/80'
+								className='absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/80'
 							>
 								{showPassword ? (
-									<EyeOff className='w-5 h-5' />
+									<EyeOff className='w-4 h-4' />
 								) : (
-									<Eye className='w-5 h-5' />
+									<Eye className='w-4 h-4' />
 								)}
 							</button>
 						</div>
 
 						{/* Role Selector */}
-						<div className='space-y-2'>
-							<label className='text-white/70 text-sm'>Выберите роль:</label>
-							<div className='grid grid-cols-2 gap-3'>
+						<div className='space-y-1.5'>
+							<label className='text-white/70 text-xs'>Выберите роль:</label>
+							<div className='grid grid-cols-2 gap-2'>
 								<button
 									type='button'
 									onClick={() => handleRoleChange('user')}
-									className={`p-4 rounded-xl border transition-all duration-300 flex flex-col items-center gap-2 ${
+									className={`p-3 rounded-xl border transition-all duration-300 flex flex-col items-center gap-1.5 ${
 										formData.role === 'user'
 											? 'bg-primary-500/30 border-primary-400/50 text-white'
 											: 'bg-white/5 border-white/20 text-white/70 hover:bg-white/10'
 									}`}
 								>
-									<Heart className='w-6 h-6' />
-									<span className='text-sm font-medium'>Я пациент</span>
+									<Heart className='w-5 h-5' />
+									<span className='text-xs font-medium'>Я пациент</span>
 								</button>
 								<button
 									type='button'
 									onClick={() => handleRoleChange('psychologist')}
-									className={`p-4 rounded-xl border transition-all duration-300 flex flex-col items-center gap-2 ${
+									className={`p-3 rounded-xl border transition-all duration-300 flex flex-col items-center gap-1.5 ${
 										formData.role === 'psychologist'
 											? 'bg-calm-blue/30 border-calm-blue/50 text-white'
 											: 'bg-white/5 border-white/20 text-white/70 hover:bg-white/10'
 									}`}
 								>
-									<Stethoscope className='w-6 h-6' />
-									<span className='text-sm font-medium'>Я психолог</span>
+									<Stethoscope className='w-5 h-5' />
+									<span className='text-xs font-medium'>Я психолог</span>
 								</button>
 							</div>
 						</div>
@@ -217,17 +225,17 @@ const Register = () => {
 						{formData.role === 'user' && (
 							<div className='animate-fade-in'>
 								<div className='relative'>
-									<UserPlus className='absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50' />
+									<UserPlus className='absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50' />
 									<input
 										type='text'
 										name='link_code'
 										value={formData.link_code}
 										onChange={handleChange}
 										placeholder='Код психолога (необязательно)'
-										className='glass-input w-full pl-12'
+										className='glass-input w-full pl-10 py-2.5'
 									/>
 								</div>
-								<p className='text-white/40 text-xs mt-2 ml-1'>
+								<p className='text-white/40 text-[10px] mt-1 ml-1'>
 									Введите код, если хотите привязаться к психологу
 								</p>
 							</div>
@@ -237,16 +245,16 @@ const Register = () => {
 						<button
 							type='submit'
 							disabled={loading}
-							className='glass-button-primary w-full flex items-center justify-center gap-2 mt-6'
+							className='glass-button-primary w-full flex items-center justify-center gap-2 mt-4 py-2.5'
 						>
 							{loading ? (
 								<>
-									<Loader2 className='w-5 h-5 animate-spin' />
+									<Loader2 className='w-4 h-4 animate-spin' />
 									Регистрация...
 								</>
 							) : (
 								<>
-									<UserPlus className='w-5 h-5' />
+									<UserPlus className='w-4 h-4' />
 									Зарегистрироваться
 								</>
 							)}
@@ -254,7 +262,7 @@ const Register = () => {
 					</form>
 
 					{/* Link to Login */}
-					<div className='mt-6 text-center'>
+					<div className='mt-4 text-center text-sm'>
 						<span className='text-white/50'>Уже есть аккаунт? </span>
 						<Link
 							to='/login'
@@ -265,7 +273,7 @@ const Register = () => {
 					</div>
 				</div>
 			</div>
-		</div>
+		</section>
 	)
 }
 
