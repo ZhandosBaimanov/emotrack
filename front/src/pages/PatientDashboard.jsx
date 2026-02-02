@@ -48,11 +48,11 @@ const PatientDashboard = () => {
 	}, [])
 
 	const getEmotionType = intensity => {
-		if (intensity <= 2) return 'very_sad'
-		if (intensity <= 4) return 'sad'
-		if (intensity <= 6) return 'neutral'
-		if (intensity <= 8) return 'good'
-		return 'excellent'
+		if (intensity <= 2) return 'Очень плохо'
+		if (intensity <= 4) return 'Плохо'
+		if (intensity <= 6) return 'Нормально'
+		if (intensity <= 8) return 'Хорошо'
+		return 'Отлично'
 	}
 
 	const handleAddEmotion = async (intensity, note) => {
