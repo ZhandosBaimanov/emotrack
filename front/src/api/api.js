@@ -193,7 +193,7 @@ export const sessionsAPI = {
 			psychologist_id: psychologistId,
 			scheduled_date: format(date, 'yyyy-MM-dd'),
 			scheduled_time: time,
-			notes
+			notes,
 		})
 		return response.data
 	},
@@ -206,7 +206,9 @@ export const sessionsAPI = {
 
 	// Получить доступные слоты психолога
 	getSlots: async (psychologistId, date) => {
-		const response = await api.get(`/sessions/slots/${psychologistId}?date=${date}`)
+		const response = await api.get(
+			`/sessions/slots/${psychologistId}?date=${date}`,
+		)
 		return response.data
 	},
 
@@ -214,10 +216,43 @@ export const sessionsAPI = {
 	updateStatus: async (sessionId, status, reason) => {
 		const response = await api.patch(`/sessions/${sessionId}/status`, {
 			status,
-			notes: reason
+			notes: reason,
 		})
 		return response.data
-	}
+	},
+}
+
+export const availabilityAPI = {
+	// Получить доступные времена психолога на дату
+	getAvailability: async (psychologistId, date) => {
+		const response = await api.get(`/availability/${psychologistId}/${date}`)
+		return response.data
+	},
+
+	// Добавить доступное время
+	addAvailability: async (availableDate, availableTime) => {
+		const response = await api.post('/availability/', {
+			available_date: availableDate,
+			available_time: availableTime,
+			is_available: true,
+		})
+		return response.data
+	},
+
+	// Массовое добавление доступных времён
+	bulkAddAvailability: async (availableDate, times) => {
+		const response = await api.post('/availability/bulk', {
+			available_date: availableDate,
+			times: times.map(t => (t.includes(':') ? t : `${t}:00`)),
+		})
+		return response.data
+	},
+
+	// Удалить доступное время
+	deleteAvailability: async availabilityId => {
+		const response = await api.delete(`/availability/${availabilityId}`)
+		return response.data
+	},
 }
 
 export default api

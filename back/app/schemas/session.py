@@ -3,6 +3,14 @@ from typing import Optional
 from datetime import date, time, datetime
 from app.models.session import SessionStatus
 
+class UserBasic(BaseModel):
+    id: int
+    first_name: str
+    last_name: str
+    
+    class Config:
+        from_attributes = True
+
 class SessionBase(BaseModel):
     scheduled_date: date
     scheduled_time: time
@@ -21,6 +29,7 @@ class SessionResponse(SessionBase):
     psychologist_id: int
     status: SessionStatus
     created_at: datetime
+    patient: Optional[UserBasic] = None
 
     class Config:
         from_attributes = True
