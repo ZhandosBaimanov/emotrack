@@ -48,9 +48,15 @@ const DashboardHeader = ({ activeTab = 'home' }) => {
 						return (
 							<button
 								key={tab.id}
+								onClick={() => {
+									if (tab.id === 'home') navigate('/psychologist')
+									else if (tab.id === 'analytics') navigate('/psychologist/analytics')
+									else if (tab.id === 'journal') navigate('/psychologist/journal')
+									else if (tab.id === 'chat') navigate('/psychologist/chats')
+								}}
 								className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 flex items-center gap-2 ${
 									activeTab === tab.id
-										? 'bg-[#7cb69d]/30 text-white'
+										? 'bg-[#8b5cf6]/30 text-white'
 										: 'text-white/60 hover:text-white hover:bg-white/10'
 								}`}
 							>
