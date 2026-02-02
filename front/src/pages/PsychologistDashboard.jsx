@@ -1,3 +1,5 @@
+import { format, parseISO } from 'date-fns'
+import { ru } from 'date-fns/locale'
 import {
 	Activity,
 	Check,
@@ -5,18 +7,28 @@ import {
 	ChevronRight,
 	Copy,
 	Loader2,
-	LogOut,
 	Mail,
 	MessageSquare,
+	Plus,
 	TrendingUp,
 	User,
 	Users,
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import {
+	Area,
+	AreaChart,
+	CartesianGrid,
+	ReferenceLine,
+	ResponsiveContainer,
+	Tooltip,
+	XAxis,
+	YAxis,
+} from 'recharts'
 import { emotionsAPI } from '../api/api'
-import { useAuth } from '../context/AuthContext'
 import { DashboardHeader } from '../components/dashboard'
+import { useAuth } from '../context/AuthContext'
 
 const emotionEmojis = {
 	'Очень плохо': '😢',
@@ -106,13 +118,15 @@ const PsychologistDashboard = () => {
 		const now = new Date()
 		const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
 		const weekEmotions = emotions.filter(e => new Date(e.created_at) >= weekAgo)
-		
+
 		if (weekEmotions.length === 0) return { percentage: 0, trend: 'neutral' }
-		
-		const avgIntensity = weekEmotions.reduce((sum, e) => sum + e.intensity, 0) / weekEmotions.length
+
+		const avgIntensity =
+			weekEmotions.reduce((sum, e) => sum + e.intensity, 0) /
+			weekEmotions.length
 		return {
 			percentage: Math.round((avgIntensity / 10) * 100),
-			trend: avgIntensity >= 5 ? 'positive' : 'negative'
+			trend: avgIntensity >= 5 ? 'positive' : 'negative',
 		}
 	}
 
@@ -123,16 +137,20 @@ const PsychologistDashboard = () => {
 		const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
 		const now = new Date()
 		const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-		const weekEmotions = patientEmotions.filter(e => new Date(e.created_at) >= weekAgo)
+		const weekEmotions = patientEmotions.filter(
+			e => new Date(e.created_at) >= weekAgo,
+		)
 
 		const bars = days.map((day, index) => {
 			const dayEmotions = weekEmotions.filter(e => {
 				const date = new Date(e.created_at)
 				return date.getDay() === (index + 1) % 7
 			})
-			const avgDay = dayEmotions.length > 0 
-				? dayEmotions.reduce((sum, e) => sum + e.intensity, 0) / dayEmotions.length 
-				: 0
+			const avgDay =
+				dayEmotions.length > 0
+					? dayEmotions.reduce((sum, e) => sum + e.intensity, 0) /
+						dayEmotions.length
+					: 0
 			return { day, value: avgDay, hasData: dayEmotions.length > 0 }
 		})
 
@@ -157,14 +175,21 @@ const PsychologistDashboard = () => {
 
 				<div className='flex items-end justify-between h-16 gap-1'>
 					{bars.map((bar, index) => (
-						<div key={index} className='flex-1 flex flex-col items-center gap-1'>
-							<div 
+						<div
+							key={index}
+							className='flex-1 flex flex-col items-center gap-1'
+						>
+							<div
 								className='w-full rounded-t transition-all duration-300'
-								style={{ 
+								style={{
 									height: `${Math.max(bar.value * 6, 4)}px`,
-									backgroundColor: bar.hasData 
-										? bar.value >= 7 ? '#22c55e' : bar.value >= 4 ? '#8b5cf6' : '#ef4444'
-										: 'rgba(255,255,255,0.1)'
+									backgroundColor: bar.hasData
+										? bar.value >= 7
+											? '#22c55e'
+											: bar.value >= 4
+												? '#8b5cf6'
+												: '#ef4444'
+										: 'rgba(255,255,255,0.1)',
 								}}
 							/>
 							<span className='text-[10px] text-white/40'>{bar.day}</span>
@@ -175,42 +200,110 @@ const PsychologistDashboard = () => {
 		)
 	}
 
+	const sortedEmotions = useMemo(() => {
+		return [...patientEmotions]
+			.sort(
+				(a, b) =>
+					new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+			)
+			.map(entry => ({
+				...entry,
+				formattedDate: format(parseISO(entry.created_at), 'd MMM', {
+					locale: ru,
+				}),
+			}))
+	}, [patientEmotions])
+
+	const CustomTooltip = ({ active, payload, label }) => {
+		if (active && payload && payload.length) {
+			const data = payload[0].payload
+			return (
+				<div className='glass-card p-4 shadow-lg rounded-xl'>
+					<p className='text-sm font-medium text-white/60'>{label}</p>
+					<div className='flex items-center gap-2 mt-1'>
+						<span className='text-2xl font-bold text-white'>
+							{data.intensity}
+						</span>
+						<span className='text-xl'>
+							{data.intensity >= 8 ? '😊' : data.intensity >= 5 ? '😐' : '😔'}
+						</span>
+					</div>
+					{data.note && (
+						<p className='text-xs text-white/40 mt-2 max-w-[200px] truncate'>
+							{data.note}
+						</p>
+					)}
+				</div>
+			)
+		}
+		return null
+	}
+
 	const renderEmotionChart = () => {
 		if (patientEmotions.length === 0) return null
-
-		const lastEmotions = patientEmotions.slice(0, 10).reverse()
-		const maxIntensity = 10
 
 		return (
 			<div className='mt-6'>
 				<h4 className='text-white/70 text-sm mb-4 flex items-center gap-2'>
 					<TrendingUp className='w-4 h-4' />
-					График настроения (последние записи)
+					Динамика настроения
 				</h4>
 				<div className='bg-white/5 rounded-xl p-4 border border-white/10'>
-					<div className='flex items-end justify-between gap-2 h-32'>
-						{lastEmotions.map((emotion, index) => {
-							const height = (emotion.intensity / maxIntensity) * 100
-							const color = emotionColors[emotion.emotion_type] || '#6b7280'
-
-							return (
-								<div key={emotion.id} className='flex-1 flex flex-col items-center gap-2'>
-									<div
-										className='w-full rounded-t-lg transition-all duration-300 hover:opacity-80'
-										style={{
-											height: `${height}%`,
-											backgroundColor: color,
-											minHeight: '8px',
-										}}
-										title={`${emotion.emotion_type}: ${emotion.intensity}/10`}
-									/>
-									<span className='text-white/40 text-xs'>
-										{formatDateShort(emotion.created_at)}
-									</span>
-								</div>
-							)
-						})}
-					</div>
+					<ResponsiveContainer width='100%' height={200}>
+						<AreaChart
+							data={sortedEmotions}
+							margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+						>
+							<defs>
+								<linearGradient
+									id='colorScorePsych'
+									x1='0'
+									y1='0'
+									x2='0'
+									y2='1'
+								>
+									<stop offset='5%' stopColor='#8b5cf6' stopOpacity={0.4} />
+									<stop offset='95%' stopColor='#8b5cf6' stopOpacity={0} />
+								</linearGradient>
+							</defs>
+							<CartesianGrid
+								strokeDasharray='3 3'
+								vertical={false}
+								stroke='rgba(255, 255, 255, 0.1)'
+							/>
+							<XAxis
+								dataKey='formattedDate'
+								axisLine={false}
+								tickLine={false}
+								tick={{ fill: 'rgba(255, 255, 255, 0.4)', fontSize: 12 }}
+								dy={10}
+							/>
+							<YAxis
+								domain={[0, 10]}
+								axisLine={false}
+								tickLine={false}
+								tick={{ fill: 'rgba(255, 255, 255, 0.4)', fontSize: 12 }}
+							/>
+							<Tooltip
+								content={<CustomTooltip />}
+								cursor={{ stroke: '#8b5cf6', strokeWidth: 2 }}
+							/>
+							<ReferenceLine
+								y={5}
+								stroke='rgba(255, 255, 255, 0.1)'
+								strokeDasharray='3 3'
+							/>
+							<Area
+								type='monotone'
+								dataKey='intensity'
+								stroke='#8b5cf6'
+								strokeWidth={3}
+								fillOpacity={1}
+								fill='url(#colorScorePsych)'
+								activeDot={{ r: 6, strokeWidth: 0, fill: '#7C3AED' }}
+							/>
+						</AreaChart>
+					</ResponsiveContainer>
 				</div>
 			</div>
 		)
@@ -219,13 +312,17 @@ const PsychologistDashboard = () => {
 	const getEmotionStats = () => {
 		if (patientEmotions.length === 0) return null
 
-		const avgIntensity = patientEmotions.reduce((acc, e) => acc + e.intensity, 0) / patientEmotions.length
+		const avgIntensity =
+			patientEmotions.reduce((acc, e) => acc + e.intensity, 0) /
+			patientEmotions.length
 		const emotionCounts = patientEmotions.reduce((acc, e) => {
 			acc[e.emotion_type] = (acc[e.emotion_type] || 0) + 1
 			return acc
 		}, {})
 
-		const mostCommon = Object.entries(emotionCounts).sort((a, b) => b[1] - a[1])[0]
+		const mostCommon = Object.entries(emotionCounts).sort(
+			(a, b) => b[1] - a[1],
+		)[0]
 
 		return (
 			<div className='grid grid-cols-2 gap-4 mt-4'>
@@ -386,61 +483,44 @@ const PsychologistDashboard = () => {
 									)}
 								</div>
 
-								{patientEmotions.length > 0 && renderMoodTracker()}
+								<div className='glass-card p-6'>
+									<h3 className='text-white font-medium mb-4 flex items-center gap-2'>
+										<MessageSquare className='w-5 h-5 text-[#8b5cf6]' />
+										Взаимодействие с пациентом
+									</h3>
 
-								{patientEmotions.length > 0 && (
-									<div className='glass-card p-6'>
-										<h3 className='text-white font-medium mb-4 flex items-center gap-2'>
-											<MessageSquare className='w-5 h-5 text-[#8b5cf6]' />
-											История записей
-										</h3>
-										<div className='space-y-3 max-h-[400px] overflow-y-auto pr-2'>
-											{patientEmotions.map((emotion, index) => (
-												<div
-													key={emotion.id}
-													className='bg-white/5 rounded-xl p-4 border border-white/10'
-												>
-													<div className='flex items-start gap-4'>
-														<span className='text-3xl'>
-															{emotionEmojis[emotion.emotion_type] || '😐'}
-														</span>
-														<div className='flex-1'>
-															<div className='flex items-center justify-between mb-1'>
-																<span className='text-white font-medium'>
-																	{emotion.emotion_type}
-																</span>
-																<span className='text-white/40 text-sm'>
-																	{formatDate(emotion.created_at)}
-																</span>
-															</div>
-															{emotion.note && (
-																<p className='text-white/60 text-sm'>
-																	{emotion.note}
-																</p>
-															)}
-															<div className='mt-2'>
-																<div className='flex items-center gap-2'>
-																	<div className='flex-1 h-2 bg-white/10 rounded-full overflow-hidden'>
-																		<div
-																			className='h-full rounded-full transition-all'
-																			style={{
-																				width: `${emotion.intensity * 10}%`,
-																				backgroundColor: emotionColors[emotion.emotion_type] || '#8b5cf6',
-																			}}
-																		/>
-																	</div>
-																	<span className='text-white/50 text-xs'>
-																		{emotion.intensity}/10
-																	</span>
-																</div>
-															</div>
-														</div>
-													</div>
-												</div>
-											))}
-										</div>
+									<div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+										{/* Запись на прием */}
+										<button className='group bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#8b5cf6]/50 rounded-xl p-6 transition-all duration-300 flex flex-col items-center gap-3'>
+											<div className='w-12 h-12 rounded-full bg-gradient-to-br from-[#8b5cf6]/30 to-[#6d28d9]/20 group-hover:from-[#8b5cf6]/40 group-hover:to-[#6d28d9]/30 flex items-center justify-center transition-all border border-[#8b5cf6]/30'>
+												<Plus className='w-6 h-6 text-[#c4a7e7]' />
+											</div>
+											<div className='text-center'>
+												<p className='text-white font-medium mb-1'>
+													Записать на прием
+												</p>
+												<p className='text-white/40 text-sm'>
+													Добавить новую сессию
+												</p>
+											</div>
+										</button>
+
+										{/* Чат с пациентом */}
+										<button className='group bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#8b5cf6]/50 rounded-xl p-6 transition-all duration-300 flex flex-col items-center gap-3'>
+											<div className='w-12 h-12 rounded-full bg-gradient-to-br from-[#8b5cf6]/30 to-[#6d28d9]/20 group-hover:from-[#8b5cf6]/40 group-hover:to-[#6d28d9]/30 flex items-center justify-center transition-all border border-[#8b5cf6]/30'>
+												<MessageSquare className='w-6 h-6 text-[#c4a7e7]' />
+											</div>
+											<div className='text-center'>
+												<p className='text-white font-medium mb-1'>
+													Открыть чат
+												</p>
+												<p className='text-white/40 text-sm'>
+													Написать пациенту
+												</p>
+											</div>
+										</button>
 									</div>
-								)}
+								</div>
 							</>
 						)}
 					</div>
