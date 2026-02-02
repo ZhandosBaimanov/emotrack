@@ -11,6 +11,9 @@ import Login from './pages/Login'
 import PsychologistDashboard from './pages/PsychologistDashboard'
 import Register from './pages/Register'
 import PatientDashboard from './pages/PatientDashboard'
+import Analytics from './pages/Analytics'
+import Journal from './pages/Journal'
+import Chats from './pages/Chats'
 
 function App() {
         return (
@@ -41,6 +44,30 @@ function App() {
                                                         element={
                                                                 <ProtectedRoute allowedRoles={['psychologist']}>
                                                                         <PsychologistDashboard />
+                                                                </ProtectedRoute>
+                                                        }
+                                                />
+                                                <Route
+                                                        path='/psychologist/analytics'
+                                                        element={
+                                                                <ProtectedRoute allowedRoles={['psychologist']}>
+                                                                        <Analytics />
+                                                                </ProtectedRoute>
+                                                        }
+                                                />
+                                                <Route
+                                                        path='/psychologist/journal'
+                                                        element={
+                                                                <ProtectedRoute allowedRoles={['psychologist']}>
+                                                                        <Journal />
+                                                                </ProtectedRoute>
+                                                        }
+                                                />
+                                                <Route
+                                                        path='/psychologist/chats'
+                                                        element={
+                                                                <ProtectedRoute allowedRoles={['psychologist']}>
+                                                                        <Chats />
                                                                 </ProtectedRoute>
                                                         }
                                                 />
