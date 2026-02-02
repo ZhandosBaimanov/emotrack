@@ -13,6 +13,7 @@ import {
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { BackgroundGradientAnimation } from '../components/ui/background-gradient-animation'
 
 const Register = () => {
 	const navigate = useNavigate()
@@ -83,15 +84,17 @@ const Register = () => {
 	}
 
 	return (
-		<section className='min-h-screen relative flex items-center justify-center p-4 py-4'>
-			{/* Background Circles */}
-			<div className='pointer-events-none absolute inset-0 right-0 overflow-hidden hidden md:block'>
-				{/* Outer big circle */}
-				<div className='absolute left-1/1 top-0 h-[2600px] w-[2600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/10' />
-				{/* Inner circle */}
-				<div className='absolute left-1/1 top-0 h-[700px] w-[700px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#0a0a0f]' />
-			</div>
-
+		<BackgroundGradientAnimation
+			gradientBackgroundStart='rgb(26, 26, 46)'
+			gradientBackgroundEnd='rgb(30, 64, 175)'
+			firstColor='109, 40, 217'
+			secondColor='139, 92, 246'
+			thirdColor='67, 56, 202'
+			fourthColor='30, 64, 175'
+			fifthColor='196, 167, 231'
+			pointerColor='139, 92, 246'
+			className='flex items-center justify-center p-4'
+		>
 			<div className='w-full max-w-md relative z-10'>
 				{/* Логотип */}
 				<div className='text-center mb-4 animate-fade-in'>
@@ -273,7 +276,7 @@ const Register = () => {
 					</div>
 				</div>
 			</div>
-		</section>
+		</BackgroundGradientAnimation>
 	)
 }
 

@@ -29,7 +29,6 @@ import {
 import { emotionsAPI } from '../api/api'
 import { DashboardHeader } from '../components/dashboard'
 import { useAuth } from '../context/AuthContext'
-import { BackgroundGradientAnimation } from '../components/ui/background-gradient-animation'
 
 const emotionEmojis = {
 	'Очень плохо': '😢',
@@ -345,18 +344,7 @@ const PsychologistDashboard = () => {
 	}
 
 	return (
-		<BackgroundGradientAnimation
-			gradientBackgroundStart='rgb(26, 26, 46)'
-			gradientBackgroundEnd='rgb(30, 64, 175)'
-			firstColor='109, 40, 217'
-			secondColor='139, 92, 246'
-			thirdColor='67, 56, 202'
-			fourthColor='30, 64, 175'
-			fifthColor='196, 167, 231'
-			pointerColor='139, 92, 246'
-			className='absolute inset-0 z-20 overflow-y-auto'
-		>
-			<div className='min-h-screen p-4 md:p-6 lg:p-8'>
+		<div className='min-h-screen p-4 md:p-6 lg:p-8'>
 				<div className='max-w-7xl mx-auto'>
 					<DashboardHeader activeTab='home' />
 
@@ -538,8 +526,7 @@ const PsychologistDashboard = () => {
 						</div>
 					</div>
 				</div>
-			</div>
-		</BackgroundGradientAnimation>
+		</div>
 	)
 }
 
