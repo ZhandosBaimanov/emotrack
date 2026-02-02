@@ -27,6 +27,7 @@ const DashboardHeader = ({ activeTab = 'home' }) => {
 			? [
 					{ id: 'home', label: 'Главная', icon: Home },
 					{ id: 'analytics', label: 'Аналитика', icon: TrendingUp },
+					{ id: 'journal', label: 'Журнал', icon: MessageSquare },
 					{ id: 'sessions', label: 'Записи', icon: Calendar },
 					{ id: 'resources', label: 'Ресурсы', icon: FolderOpen },
 					{ id: 'chat', label: 'Чат', icon: MessageCircle },
@@ -63,6 +64,8 @@ const DashboardHeader = ({ activeTab = 'home' }) => {
 										if (tab.id === 'home') navigate('/psychologist')
 										else if (tab.id === 'analytics')
 											navigate('/psychologist/analytics')
+										else if (tab.id === 'journal')
+											navigate('/psychologist/journal')
 										else if (tab.id === 'sessions')
 											navigate('/psychologist/sessions')
 										else if (tab.id === 'resources')
@@ -95,7 +98,11 @@ const DashboardHeader = ({ activeTab = 'home' }) => {
 					<Bell className='w-5 h-5' />
 				</button>
 
-				<button className='p-2 rounded-xl text-white/60 hover:text-white hover:bg-white/10 transition-all'>
+				<button
+					onClick={() => navigate('/settings')}
+					className='p-2 rounded-xl text-white/60 hover:text-white hover:bg-white/10 transition-all'
+					title='Настройки'
+				>
 					<Settings className='w-5 h-5' />
 				</button>
 

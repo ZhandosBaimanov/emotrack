@@ -31,12 +31,12 @@ def init_test_users(db: Session):
         db.add(psychologist)
         db.commit()
         db.refresh(psychologist)
-        print(f"✅ Создан психолог: Нуркен Арыстанов (nurken@gmail.com)")
-        print(f"   Пароль: Zhandos27")
-        print(f"   Код психолога: {psychologist_code}")
+        print(f"Created psychologist: Нуркен Арыстанов (nurken@gmail.com)")
+        print(f"   Password: Zhandos27")
+        print(f"   Psychologist code: {psychologist_code}")
     else:
         psychologist = existing_psychologist
-        print(f"ℹ️  Психолог уже существует: {psychologist.email}")
+        print(f"Psychologist already exists: {psychologist.email}")
     
     # Создаем пациента
     if not existing_patient:
@@ -51,23 +51,23 @@ def init_test_users(db: Session):
         db.add(patient)
         db.commit()
         db.refresh(patient)
-        print(f"✅ Создан пациент: Жандос Акимджан (akimdzhan@gmail.com)")
-        print(f"   Пароль: Zhandos27")
+        print(f"Created patient: Жандос Акимджан (akimdzhan@gmail.com)")
+        print(f"   Password: Zhandos27")
         if psychologist:
-            print(f"   Привязан к психологу: {psychologist.first_name} {psychologist.last_name}")
+            print(f"   Linked to psychologist: {psychologist.first_name} {psychologist.last_name}")
     else:
-        print(f"ℹ️  Пациент уже существует: {existing_patient.email}")
+        print(f"Patient already exists: {existing_patient.email}")
 
 
 def init_db():
     """Инициализация базы данных"""
     db = SessionLocal()
     try:
-        print("\n🔄 Инициализация тестовых пользователей...")
+        print("\nInitializing test users...")
         init_test_users(db)
-        print("✅ Инициализация завершена!\n")
+        print("Initialization complete!\n")
     except Exception as e:
-        print(f"❌ Ошибка при инициализации: {e}")
+        print(f"Error during initialization: {e}")
         db.rollback()
     finally:
         db.close()

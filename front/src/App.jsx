@@ -15,6 +15,7 @@ import PatientDashboard from './pages/PatientDashboard'
 import PsychologistDashboard from './pages/PsychologistDashboard'
 import Register from './pages/Register'
 import Resources from './pages/Resources'
+import SettingsPage from './pages/Settings'
 import SessionsPage from './pages/SessionsPage'
 
 function App() {
@@ -30,6 +31,41 @@ function App() {
 						<Route path='/login' element={<Login />} />
 						<Route path='/register' element={<Register />} />
 
+                                                {/* Общие защищенные маршруты */}
+                                                <Route
+                                                        path='/settings'
+                                                        element={
+                                                                <ProtectedRoute allowedRoles={['user', 'psychologist']}>
+                                                                        <SettingsPage />
+                                                                </ProtectedRoute>
+                                                        }
+                                                />
+
+                                                {/* Защищенные маршруты для пациентов */}
+                                                <Route
+                                                        path='/dashboard'
+                                                        element={
+                                                                <ProtectedRoute allowedRoles={['user']}>
+                                                                        <PatientDashboard />
+                                                                </ProtectedRoute>
+                                                        }
+                                                />
+                                                <Route
+                                                        path='/dashboard/resources'
+                                                        element={
+                                                                <ProtectedRoute allowedRoles={['user']}>
+                                                                        <Resources />
+                                                                </ProtectedRoute>
+                                                        }
+                                                />
+                                                <Route
+                                                        path='/dashboard/chats'
+                                                        element={
+                                                                <ProtectedRoute allowedRoles={['user']}>
+                                                                        <Chats />
+                                                                </ProtectedRoute>
+                                                        }
+                                                />
 						{/* Защищенные маршруты для пациентов */}
 						<Route
 							path='/dashboard'

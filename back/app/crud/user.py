@@ -3,7 +3,7 @@ import random
 import string
 
 from app.models import User, UserRole
-from app.schemas import UserCreate, UserRole as SchemaUserRole
+from app.schemas import UserCreate, UserRole as SchemaUserRole, UserUpdate
 from app.security import get_password_hash
 
 
@@ -78,3 +78,16 @@ def get_all_psychologists(db: Session, limit: int = 10):
     return db.query(User).filter(
         User.role == UserRole.PSYCHOLOGIST
     ).limit(limit).all()
+
+
+def update_user(db: Session, db_user: User, user_update: UserUpdate):
+    """Обновить данные пользователя"""
+    update_data = user_update.model_dump(exclude_unset=True)
+    
+    for key, value in update_data.items():
+        setattr(db_user, key, value)
+        
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user

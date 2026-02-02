@@ -33,7 +33,7 @@ app.add_middleware(
 )
 
 # Создаём директорию для загрузок
-UPLOAD_DIR = Path("/app/uploads")
+UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
 
 # Подключаем статику для загруженных файлов
