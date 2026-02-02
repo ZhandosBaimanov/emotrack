@@ -1,7 +1,7 @@
 import { Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { emotionsAPI, usersAPI } from '../api/api'
+import { emotionsAPI, usersAPI, sessionsAPI } from '../api/api'
 import {
 	AIJournal,
 	DashboardHeader,
@@ -35,6 +35,13 @@ const PatientDashboard = () => {
 					setRecommendedPsychologists(recommendedData)
 				} catch (err) {
 					setRecommendedPsychologists([])
+				}
+
+				try {
+					const sessionsData = await sessionsAPI.getMySessions()
+					setSessions(sessionsData)
+				} catch (err) {
+					console.error('Error fetching sessions:', err)
 				}
 			} catch (err) {
 				console.error('Error fetching data:', err)

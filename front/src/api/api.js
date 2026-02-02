@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { format } from 'date-fns'
 
 // Базовый URL API
 const API_BASE_URL = '/api'
@@ -188,6 +189,76 @@ export const messagesAPI = {
 	// Получить непрочитанные сообщения
 	getUnreadCount: async () => {
 		const response = await api.get('/messages/unread-count')
+		return response.data
+	},
+}
+
+// API функции для сеансов
+export const sessionsAPI = {
+	// Отправить запрос на сеанс
+	requestSession: async (psychologistId, date, time, notes) => {
+		const response = await api.post('/sessions/request', {
+			psychologist_id: psychologistId,
+			scheduled_date: format(date, 'yyyy-MM-dd'),
+			scheduled_time: time,
+			notes,
+		})
+		return response.data
+	},
+
+	// Получить мои сеансы
+	getMySessions: async () => {
+		const response = await api.get('/sessions/my')
+		return response.data
+	},
+
+	// Получить доступные слоты психолога
+	getSlots: async (psychologistId, date) => {
+		const response = await api.get(
+			`/sessions/slots/${psychologistId}?date=${date}`,
+		)
+		return response.data
+	},
+
+	// Обновить статус сеанса (для психолога или отмены пациентом)
+	updateStatus: async (sessionId, status, reason) => {
+		const response = await api.patch(`/sessions/${sessionId}/status`, {
+			status,
+			notes: reason,
+		})
+		return response.data
+	},
+}
+
+export const availabilityAPI = {
+	// Получить доступные времена психолога на дату
+	getAvailability: async (psychologistId, date) => {
+		const response = await api.get(`/availability/${psychologistId}/${date}`)
+		return response.data
+	},
+
+	// Добавить доступное время
+	addAvailability: async (availableDate, availableTime) => {
+		const response = await api.post('/availability/', {
+			available_date: availableDate,
+			available_time: availableTime,
+			is_available: true,
+		})
+		return response.data
+	},
+
+	// Массовое добавление доступных времён
+	bulkAddAvailability: async (availableDate, times) => {
+		const response = await api.post('/availability/bulk', {
+			available_date: availableDate,
+			times: times.map(t => (t.includes(':') ? t : `${t}:00`)),
+		})
+		return response.data
+	},
+
+	// Удалить доступное время
+	deleteAvailability: async availabilityId => {
+		const response = await api.delete(`/availability/${availabilityId}`)
 		return response.data
 	},
 }
