@@ -116,7 +116,7 @@ const PatientDashboard = () => {
 
 	if (loading) {
 		return (
-			<div className='min-h-screen flex items-center justify-center'>
+			<div className='min-h-screen flex items-center justify-center bg-[#1a1a2e]'>
 				<Loader2 className='w-8 h-8 text-[#8b5cf6] animate-spin' />
 			</div>
 		)
