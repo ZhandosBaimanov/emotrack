@@ -239,12 +239,7 @@ const Journal = () => {
 																{emotionEmojis[emotion.emotion_type] || '😐'}
 															</div>
 															<div>
-																<p
-																	className='font-semibold text-lg'
-																	style={{
-																		color: emotionColors[emotion.emotion_type],
-																	}}
-																>
+																<p className='font-semibold text-lg text-white'>
 																	{emotion.emotion_type}
 																</p>
 																<div className='flex items-center gap-3 text-white/40 text-sm mt-1'>
