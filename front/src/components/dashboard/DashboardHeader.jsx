@@ -1,16 +1,17 @@
 import {
-	Bell,
-	Calendar,
-	FolderOpen,
-	Home,
-	LogOut,
-	MessageCircle,
-	Settings,
-	TrendingUp,
-	User,
+    Calendar,
+    FolderOpen,
+    Home,
+    LogOut,
+    MessageCircle,
+    MessageSquare,
+    Settings,
+    TrendingUp,
+    User,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import NotificationsDropdown from '../NotificationsDropdown'
 
 const DashboardHeader = ({ activeTab = 'home' }) => {
 	const navigate = useNavigate()
@@ -39,7 +40,7 @@ const DashboardHeader = ({ activeTab = 'home' }) => {
 				]
 
 	return (
-		<header className='glass-card px-6 py-4 mb-6 flex items-center justify-between min-h-[80px]'>
+		<header className='glass-card px-6 py-4 mb-6 flex items-center justify-between relative z-50 min-h-[80px]'>
 			<div className='flex items-center gap-8'>
 				{/* Logo */}
 				<div className='flex items-center gap-2'>
@@ -94,9 +95,7 @@ const DashboardHeader = ({ activeTab = 'home' }) => {
 
 			{/* User Section */}
 			<div className='flex items-center gap-4'>
-				<button className='p-2 rounded-xl text-white/60 hover:text-white hover:bg-white/10 transition-all'>
-					<Bell className='w-5 h-5' />
-				</button>
+				<NotificationsDropdown />
 
 				<button
 					onClick={() => navigate('/settings')}

@@ -1,3 +1,3 @@
-from app.crud import user, emotion
+from app.crud import user, emotion, notification
 
-__all__ = ["user", "emotion"]
+__all__ = ["user", "emotion", "notification"]

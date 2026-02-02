@@ -263,4 +263,43 @@ export const availabilityAPI = {
 	},
 }
 
+// API функции для уведомлений
+export const notificationsAPI = {
+	// Получить список уведомлений
+	getNotifications: async (skip = 0, limit = 50, unreadOnly = false) => {
+		const response = await api.get(`/notifications?skip=${skip}&limit=${limit}&unread_only=${unreadOnly}`)
+		return response.data
+	},
+
+	// Получить количество непрочитанных
+	getUnreadCount: async () => {
+		const response = await api.get('/notifications/unread-count')
+		return response.data
+	},
+
+	// Отметить уведомление как прочитанное
+	markAsRead: async notificationId => {
+		const response = await api.patch(`/notifications/${notificationId}/read`)
+		return response.data
+	},
+
+	// Отметить все как прочитанные
+	markAllAsRead: async () => {
+		const response = await api.patch('/notifications/mark-all-read')
+		return response.data
+	},
+
+	// Удалить уведомление
+	deleteNotification: async notificationId => {
+		const response = await api.delete(`/notifications/${notificationId}`)
+		return response.data
+	},
+
+	// Удалить все прочитанные
+	deleteAllRead: async () => {
+		const response = await api.delete('/notifications')
+		return response.data
+	},
+}
+
 export default api

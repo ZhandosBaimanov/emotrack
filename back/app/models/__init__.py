@@ -4,8 +4,10 @@ from app.models.message import Message
 from app.models.session import Session, SessionStatus
 from app.models.availability import PsychologistAvailability
 from app.models.resource import Resource
+from app.models.notification import Notification, NotificationType
 
-__all__ = ["User", "UserRole", "Emotion", "Message", "Session", "SessionStatus", "PsychologistAvailability", "Resource"]
-from app.models.resource import Resource
-
-__all__ = ["User", "UserRole", "Emotion", "Message", "Resource"]
+__all__ = [
+    "User", "UserRole", "Emotion", "Message", 
+    "Session", "SessionStatus", "PsychologistAvailability", 
+    "Resource", "Notification", "NotificationType"
+]

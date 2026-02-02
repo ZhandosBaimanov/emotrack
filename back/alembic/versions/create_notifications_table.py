@@ -1,0 +1,45 @@
+"""create notifications table
+
+Revision ID: create_notifications
+Revises: 
+Create Date: 2026-02-02
+
+"""
+from alembic import op
+import sqlalchemy as sa
+
+
+# revision identifiers, used by Alembic.
+revision = 'create_notifications'
+down_revision = None
+branch_labels = None
+depends_on = None
+
+
+def upgrade() -> None:
+    op.create_table(
+        'notifications',
+        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('user_id', sa.Integer(), nullable=False),
+        sa.Column('title', sa.String(length=255), nullable=False),
+        sa.Column('message', sa.String(length=1000), nullable=False),
+        sa.Column('notification_type', sa.Enum('message', 'session', 'system', 'emotion', 'reminder', name='notificationtype'), nullable=True),
+        sa.Column('is_read', sa.Boolean(), nullable=True, default=False),
+        sa.Column('avatar_url', sa.String(length=500), nullable=True),
+        sa.Column('action_url', sa.String(length=500), nullable=True),
+        sa.Column('created_at', sa.DateTime(), nullable=True),
+        sa.Column('read_at', sa.DateTime(), nullable=True),
+        sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+        sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_notifications_id'), 'notifications', ['id'], unique=False)
+    op.create_index(op.f('ix_notifications_user_id'), 'notifications', ['user_id'], unique=False)
+    op.create_index(op.f('ix_notifications_is_read'), 'notifications', ['is_read'], unique=False)
+
+
+def downgrade() -> None:
+    op.drop_index(op.f('ix_notifications_is_read'), table_name='notifications')
+    op.drop_index(op.f('ix_notifications_user_id'), table_name='notifications')
+    op.drop_index(op.f('ix_notifications_id'), table_name='notifications')
+    op.drop_table('notifications')
+    op.execute("DROP TYPE IF EXISTS notificationtype")
