@@ -1,416 +1,391 @@
-import { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { 
-  Download, 
-  Upload, 
-  FileText, 
-  Video, 
-  Headphones, 
-  Image, 
-  X, 
-  Search,
-  Filter,
-  Check,
-  FolderOpen
-} from 'lucide-react';
-import { resourcesAPI } from '../api/api';
-import { DashboardHeader } from '../components/dashboard';
-import { useAuth } from '../context/AuthContext';
+import { format } from 'date-fns'
+import { ru } from 'date-fns/locale'
+import {
+    Check,
+    Download,
+    FileText,
+    Filter,
+    Loader2,
+    Search,
+    Trash2,
+    Upload,
+    File,
+    Music,
+    Video,
+    Image as ImageIcon,
+    X
+} from 'lucide-react'
+import { useEffect, useState, useRef } from 'react'
+import { toast } from 'sonner'
+import { resourcesAPI } from '../api/api'
+import { DashboardHeader } from '../components/dashboard'
+import { useAuth } from '../context/AuthContext'
 
 const Resources = () => {
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const fileInputRef = useRef(null);
-  const [resources, setResources] = useState([]);
-  const [filteredResources, setFilteredResources] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [uploadForm, setUploadForm] = useState({
-    title: '',
-    description: '',
-    category: 'article',
-    assignedTo: 'all'
-  });
-  const [patients, setPatients] = useState([]);
+    const { user } = useAuth()
+    const [resources, setResources] = useState([])
+    const [loading, setLoading] = useState(true)
+    const [uploading, setUploading] = useState(false)
+    const [uploadProgress, setUploadProgress] = useState(0)
+    const [dragActive, setDragActive] = useState(false)
+    const fileInputRef = useRef(null)
 
-  // Available categories
-  const categories = [
-    { id: 'all', name: 'Все' },
-    { id: 'article', name: 'Статья' },
-    { id: 'exercise', name: 'Упражнение' },
-    { id: 'video', name: 'Видео' },
-    { id: 'audio', name: 'Аудио' }
-  ];
+    // Filters
+    const [search, setSearch] = useState('')
+    const [filterType, setFilterType] = useState('all')
 
-  // File type icons mapping
-  const getFileIcon = (fileType) => {
-    if (fileType.startsWith('image/')) return <Image className="w-4 h-4" />;
-    if (fileType.includes('video/')) return <Video className="w-4 h-4" />;
-    if (fileType.includes('audio/')) return <Headphones className="w-4 h-4" />;
-    return <FileText className="w-4 h-4" />;
-  };
+    // Upload Form State
+    const [selectedFile, setSelectedFile] = useState(null)
+    const [title, setTitle] = useState('')
+    const [description, setDescription] = useState('')
+    const [isPublic, setIsPublic] = useState(false)
+    const [tags, setTags] = useState('')
 
-  // Get category name
-  const getCategoryName = (categoryId) => {
-    const category = categories.find(cat => cat.id === categoryId);
-    return category ? category.name : categoryId;
-  };
+    useEffect(() => {
+        fetchResources()
+    }, [])
 
-  // Load resources based on user role
-  const loadResources = async () => {
-    try {
-      setLoading(true);
-      if (user.role === 'psychologist') {
-        // Load resources created by the psychologist
-        const data = await resourcesAPI.getMyResources();
-        setResources(data);
-        setFilteredResources(data);
-
-        // Also load patients to assign resources to
-        const patientsData = await resourcesAPI.getMyPatients();
-        setPatients(patientsData);
-      } else {
-        // Load resources assigned to the patient
-        const data = await resourcesAPI.getPatientResources();
-        setResources(data);
-        setFilteredResources(data);
-      }
-    } catch (error) {
-      console.error('Error loading resources:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Filter resources based on search and category
-  const filterResources = () => {
-    let filtered = resources;
-
-    // Apply category filter
-    if (selectedCategory !== 'all') {
-      filtered = filtered.filter(resource => resource.category === selectedCategory);
+    const fetchResources = async () => {
+        try {
+            setLoading(true)
+            const response = user?.role === 'psychologist' 
+                ? await resourcesAPI.getMyResources() 
+                : await resourcesAPI.getPatientResources()
+            setResources(Array.isArray(response.data) ? response.data : [])
+        } catch (error) {
+            console.error(error)
+            toast.error('Ошибка загрузки ресурсов')
+        } finally {
+            setLoading(false)
+        }
     }
 
-    // Apply search filter
-    if (searchTerm) {
-      filtered = filtered.filter(resource => 
-        resource.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        resource.description.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+    const handleDrag = (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        if (e.type === 'dragenter' || e.type === 'dragover') {
+            setDragActive(true)
+        } else if (e.type === 'dragleave') {
+            setDragActive(false)
+        }
     }
 
-    setFilteredResources(filtered);
-  };
-
-  // Handle search and category changes
-  const handleFilterChange = () => {
-    filterResources();
-  };
-
-  // Handle file upload
-  const handleFileUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('title', uploadForm.title);
-    formData.append('description', uploadForm.description);
-    formData.append('category', uploadForm.category);
-
-    if (uploadForm.assignedTo !== 'all') {
-      formData.append('assigned_to', uploadForm.assignedTo);
+    const handleDrop = (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        setDragActive(false)
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            handleFileSelect(e.dataTransfer.files[0])
+        }
     }
 
-    try {
-      setUploading(true);
-      const resource = await resourcesAPI.uploadResource(formData);
-      setResources(prev => [resource, ...prev]);
-      setFilteredResources(prev => [resource, ...prev]);
-
-      // Reset form
-      setUploadForm({
-        title: '',
-        description: '',
-        category: 'article',
-        assignedTo: 'all'
-      });
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    } catch (error) {
-      console.error('Error uploading resource:', error);
-    } finally {
-      setUploading(false);
+    const handleFileSelect = (file) => {
+        if (file.size > 50 * 1024 * 1024) {
+            toast.error('Файл слишком большой (макс 50MB)')
+            return
+        }
+        setSelectedFile(file)
+        if (!title) setTitle(file.name)
     }
-  };
 
-  // Handle mark as read
-  const handleMarkAsRead = async (resourceId) => {
-    try {
-      await resourcesAPI.markAsRead(resourceId);
-      setResources(prev => 
-        prev.map(res => 
-          res.id === resourceId ? {...res, is_read: true} : res
-        )
-      );
-      setFilteredResources(prev => 
-        prev.map(res => 
-          res.id === resourceId ? {...res, is_read: true} : res
-        )
-      );
-    } catch (error) {
-      console.error('Error marking resource as read:', error);
+    const handleUpload = async (e) => {
+        e.preventDefault()
+        if (!selectedFile || !title) return
+
+        const formData = new FormData()
+        formData.append('file', selectedFile)
+        formData.append('title', title)
+        formData.append('description', description)
+        formData.append('is_public', isPublic)
+        formData.append('tags', JSON.stringify(tags.split(',').map(t => t.trim()).filter(Boolean)))
+
+        setUploading(true)
+        setUploadProgress(0)
+
+        try {
+            await resourcesAPI.uploadResource(formData, (progressEvent) => {
+                const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+                setUploadProgress(percentCompleted)
+            })
+            toast.success('Файл успешно загружен')
+            setSelectedFile(null)
+            setTitle('')
+            setDescription('')
+            setTags('')
+            setIsPublic(false)
+            fetchResources()
+        } catch (error) {
+            toast.error('Ошибка загрузки файла')
+        } finally {
+            setUploading(false)
+        }
     }
-  };
 
-  // Handle resource deletion (psychologist only)
-  const handleDeleteResource = async (resourceId) => {
-    try {
-      await resourcesAPI.deleteResource(resourceId);
-      setResources(prev => prev.filter(res => res.id !== resourceId));
-      setFilteredResources(prev => prev.filter(res => res.id !== resourceId));
-    } catch (error) {
-      console.error('Error deleting resource:', error);
+    const handleDelete = async (id) => {
+        if (!window.confirm('Вы уверены?')) return
+        try {
+            await resourcesAPI.deleteResource(id)
+            toast.success('Ресурс удален')
+            setResources(prev => prev.filter(r => r.id !== id))
+        } catch (error) {
+            toast.error('Ошибка удаления')
+        }
     }
-  };
 
-  // Initialize component
-  useState(() => {
-    loadResources();
-  });
+    const handleDownload = async (resource) => {
+        try {
+            const response = await resourcesAPI.downloadResource(resource.id)
+            const url = window.URL.createObjectURL(new Blob([response.data]))
+            const link = document.createElement('a')
+            link.href = url
+            // Try to use title + extension or standard name
+            link.setAttribute('download', resource.title + (resource.file_type || '')) 
+            document.body.appendChild(link)
+            link.click()
+            link.remove()
+        } catch (error) {
+            console.error(error)
+            toast.error('Ошибка скачивания')
+        }
+    }
 
-  // Update filters when search term or category changes
-  useState(() => {
-    handleFilterChange();
-  }, [searchTerm, selectedCategory, resources]);
+    const filteredResources = resources.filter(r => {
+        const matchesSearch = r.title.toLowerCase().includes(search.toLowerCase()) || 
+                              (r.description && r.description.toLowerCase().includes(search.toLowerCase()))
+        if (filterType === 'all') return matchesSearch
+        
+        const ext = r.file_type || ''
+        if (filterType === 'document') return matchesSearch && ['.pdf', '.doc', '.docx', '.txt'].includes(ext)
+        if (filterType === 'media') return matchesSearch && ['.mp3', '.mp4', '.jpg', '.png'].includes(ext)
+        return matchesSearch
+    })
 
-  return (
-    <div className="min-h-screen p-4 md:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto">
-        <DashboardHeader activeTab="resources" />
+    const getFileIcon = (type) => {
+        if (!type) return <File className="w-6 h-6 text-gray-400" />
+        if (['.jpg', '.png', '.jpeg'].includes(type)) return <ImageIcon className="w-6 h-6 text-blue-400" />
+        if (['.mp3', '.wav'].includes(type)) return <Music className="w-6 h-6 text-purple-400" />
+        if (['.mp4', '.avi'].includes(type)) return <Video className="w-6 h-6 text-red-400" />
+        if (['.pdf', '.doc', '.docx'].includes(type)) return <FileText className="w-6 h-6 text-orange-400" />
+        return <File className="w-6 h-6 text-gray-400" />
+    }
 
-        <div className="glass-card p-6 mb-6">
-          <div className="flex items-center gap-3 mb-6">
-            <FolderOpen className="w-8 h-8 text-[#8b5cf6]" />
-            <h1 className="text-2xl font-semibold text-white">
-              {user.role === 'psychologist' ? 'Мои ресурсы' : 'Образовательные ресурсы'}
-            </h1>
-          </div>
+    return (
+        <div className='min-h-screen p-4 md:p-6 lg:p-8'>
+            <div className='max-w-7xl mx-auto'>
+                <DashboardHeader activeTab='resources' />
 
-          {/* Search and Filter Section */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/40 w-4 h-4" />
-              <input
-                type="text"
-                placeholder="Поиск по названию или описанию..."
-                className="glass-input pl-10 w-full"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            
-            <div className="relative">
-              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/40 w-4 h-4" />
-              <select
-                className="glass-input pl-10 w-full appearance-none"
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-              >
-                {categories.map(category => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+                {user?.role === 'psychologist' && (
+                    <div className="glass-card p-6 mb-8">
+                        <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+                            <Upload className="w-5 h-5 text-[#8b5cf6]" />
+                            Загрузить новый ресурс
+                        </h2>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div 
+                                className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center transition-all cursor-pointer h-full min-h-[200px]
+                                    ${dragActive ? 'border-[#8b5cf6] bg-[#8b5cf6]/10' : 'border-white/10 hover:border-white/20 hover:bg-white/5'}
+                                    ${selectedFile ? 'border-[#22c55e]/50 bg-[#22c55e]/5' : ''}
+                                `}
+                                onDragEnter={handleDrag}
+                                onDragLeave={handleDrag}
+                                onDragOver={handleDrag}
+                                onDrop={handleDrop}
+                                onClick={() => fileInputRef.current?.click()}
+                            >
+                                <input 
+                                    ref={fileInputRef}
+                                    type="file" 
+                                    className="hidden" 
+                                    onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
+                                />
+                                
+                                {selectedFile ? (
+                                    <div className="text-center">
+                                        <div className="w-12 h-12 rounded-full bg-[#22c55e]/20 flex items-center justify-center mx-auto mb-3">
+                                            <Check className="w-6 h-6 text-[#22c55e]" />
+                                        </div>
+                                        <p className="text-white font-medium break-all">{selectedFile.name}</p>
+                                        <p className="text-white/40 text-sm mt-1">{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB</p>
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); setSelectedFile(null); }}
+                                            className="mt-4 text-sm text-[#ef4444] hover:underline"
+                                        >
+                                            Отменить
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="text-center">
+                                        <div className="w-12 h-12 rounded-full bg-[#8b5cf6]/20 flex items-center justify-center mx-auto mb-3">
+                                            <Upload className="w-6 h-6 text-[#c4a7e7]" />
+                                        </div>
+                                        <p className="text-white font-medium">Перетащите файл сюда</p>
+                                        <p className="text-white/40 text-sm mt-1">или кликните для выбора</p>
+                                        <p className="text-white/20 text-xs mt-4">PDF, DOC, MP4, MP3, ZIP до 50MB</p>
+                                    </div>
+                                )}
+                            </div>
 
-            {user.role === 'psychologist' && (
-              <button
-                onClick={() => document.getElementById('file-upload').click()}
-                className="glass-button px-4 flex items-center gap-2 justify-center"
-              >
-                <Upload className="w-4 h-4" />
-                Загрузить ресурс
-              </button>
-            )}
-          </div>
+                            <form onSubmit={handleUpload} className="space-y-4">
+                                <div>
+                                    <label className="block text-white/60 text-sm mb-2">Название</label>
+                                    <input 
+                                        type="text" 
+                                        value={title}
+                                        onChange={e => setTitle(e.target.value)}
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#8b5cf6] transition-colors"
+                                        placeholder="Например: Дневник эмоций.pdf"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-white/60 text-sm mb-2">Описание (опционально)</label>
+                                    <textarea 
+                                        value={description}
+                                        onChange={e => setDescription(e.target.value)}
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#8b5cf6] transition-colors resize-none h-24"
+                                        placeholder="Краткое описание ресурса..."
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-white/60 text-sm mb-2">Теги (через запятую)</label>
+                                    <input 
+                                        type="text" 
+                                        value={tags}
+                                        onChange={e => setTags(e.target.value)}
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#8b5cf6] transition-colors"
+                                        placeholder="психология, упражнение, медитация"
+                                    />
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <input 
+                                        type="checkbox" 
+                                        id="public"
+                                        checked={isPublic}
+                                        onChange={e => setIsPublic(e.target.checked)}
+                                        className="w-4 h-4 rounded border-white/20 bg-white/5 text-[#8b5cf6] focus:ring-[#8b5cf6]"
+                                    />
+                                    <label htmlFor="public" className="text-white text-sm cursor-pointer select-none">
+                                        Доступно всем моим пациентам
+                                    </label>
+                                </div>
 
-          {/* Upload Form for Psychologists */}
-          {user.role === 'psychologist' && (
-            <div className="glass-card p-4 mb-6">
-              <h3 className="text-lg font-medium text-white mb-4">Загрузить новый ресурс</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-white/70 text-sm mb-2">Название</label>
-                  <input
-                    type="text"
-                    className="glass-input w-full"
-                    placeholder="Введите название ресурса"
-                    value={uploadForm.title}
-                    onChange={(e) => setUploadForm({...uploadForm, title: e.target.value})}
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-white/70 text-sm mb-2">Категория</label>
-                  <select
-                    className="glass-input w-full"
-                    value={uploadForm.category}
-                    onChange={(e) => setUploadForm({...uploadForm, category: e.target.value})}
-                  >
-                    {categories.slice(1).map(category => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div className="md:col-span-2">
-                  <label className="block text-white/70 text-sm mb-2">Описание</label>
-                  <textarea
-                    className="glass-input w-full min-h-[100px]"
-                    placeholder="Введите описание ресурса"
-                    value={uploadForm.description}
-                    onChange={(e) => setUploadForm({...uploadForm, description: e.target.value})}
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-white/70 text-sm mb-2">Назначить пациенту</label>
-                  <select
-                    className="glass-input w-full"
-                    value={uploadForm.assignedTo}
-                    onChange={(e) => setUploadForm({...uploadForm, assignedTo: e.target.value})}
-                  >
-                    <option value="all">Для всех</option>
-                    {patients.map(patient => (
-                      <option key={patient.id} value={patient.id}>
-                        {patient.first_name} {patient.last_name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div className="flex items-end">
-                  <input
-                    id="file-upload"
-                    type="file"
-                    className="hidden"
-                    ref={fileInputRef}
-                    onChange={handleFileUpload}
-                    accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.mp4,.avi,.mov,.mp3,.wav"
-                  />
-                  <button
-                    onClick={() => document.getElementById('file-upload').click()}
-                    disabled={uploading || !uploadForm.title}
-                    className="glass-button px-6 py-2 flex items-center gap-2 disabled:opacity-50"
-                  >
-                    {uploading ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                        Загрузка...
-                      </>
+                                <button 
+                                    type="submit"
+                                    disabled={!selectedFile || !title || uploading}
+                                    className="w-full bg-gradient-to-r from-[#8b5cf6] to-[#6d28d9] text-white font-medium py-3 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                    {uploading ? (
+                                        <>
+                                            <Loader2 className="w-5 h-5 animate-spin" />
+                                            Загрузка {uploadProgress}%
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Upload className="w-5 h-5" />
+                                            Загрузить ресурс
+                                        </>
+                                    )}
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                )}
+
+                <div className="glass-card p-6 min-h-[400px]">
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
+                        <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                            <FileText className="w-5 h-5 text-[#8b5cf6]" />
+                            Библиотека ресурсов
+                        </h2>
+                        
+                        <div className="flex items-center gap-2 w-full md:w-auto">
+                            <div className="relative flex-1 md:w-64">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                                <input 
+                                    type="text"
+                                    value={search}
+                                    onChange={e => setSearch(e.target.value)}
+                                    placeholder="Поиск ресурсов..."
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2 text-white text-sm focus:outline-none focus:border-[#8b5cf6] transition-colors"
+                                />
+                            </div>
+                            <select 
+                                value={filterType}
+                                onChange={e => setFilterType(e.target.value)}
+                                className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-[#8b5cf6] transition-colors"
+                            >
+                                <option value="all" className="bg-[#1a1a1a]">Все типы</option>
+                                <option value="document" className="bg-[#1a1a1a]">Документы</option>
+                                <option value="media" className="bg-[#1a1a1a]">Медиа</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {loading ? (
+                        <div className="flex items-center justify-center py-20">
+                            <Loader2 className="w-10 h-10 text-[#8b5cf6] animate-spin" />
+                        </div>
+                    ) : filteredResources.length === 0 ? (
+                        <div className="text-center py-20">
+                            <FileText className="w-16 h-16 text-white/10 mx-auto mb-4" />
+                            <p className="text-white/50">Ресурсы не найдены</p>
+                        </div>
                     ) : (
-                      <>
-                        <Upload className="w-4 h-4" />
-                        Выбрать файл
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {filteredResources.map(resource => (
+                                <div key={resource.id} className="bg-white/5 border border-white/10 rounded-xl p-4 hover:border-[#8b5cf6]/50 transition-all group">
+                                    <div className="flex items-start justify-between mb-3">
+                                        <div className="p-3 rounded-lg bg-white/5">
+                                            {getFileIcon(resource.file_type)}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <button 
+                                                onClick={() => handleDownload(resource)}
+                                                className="p-2 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-colors"
+                                                title="Скачать"
+                                            >
+                                                <Download className="w-4 h-4" />
+                                            </button>
+                                            {user?.role === 'psychologist' && (
+                                                <button 
+                                                    onClick={() => handleDelete(resource.id)}
+                                                    className="p-2 rounded-lg hover:bg-[#ef4444]/20 text-white/60 hover:text-[#ef4444] transition-colors"
+                                                    title="Удалить"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                    
+                                    <h3 className="text-white font-medium mb-1 truncate" title={resource.title}>
+                                        {resource.title}
+                                    </h3>
+                                    <p className="text-white/40 text-xs mb-3 line-clamp-2 min-h-[2.5em]">
+                                        {resource.description || 'Нет описания'}
+                                    </p>
+                                    
+                                    <div className="flex items-center gap-2 flex-wrap mb-3">
+                                        {resource.tags && resource.tags.map((tag, i) => (
+                                            <span key={i} className="text-[10px] px-2 py-1 rounded-full bg-[#8b5cf6]/20 text-[#c4a7e7]">
+                                                {tag}
+                                            </span>
+                                        ))}
+                                    </div>
 
-          {/* Resources List */}
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="w-8 h-8 border-4 border-[#8b5cf6]/30 border-t-[#8b5cf6] rounded-full animate-spin"></div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredResources.length === 0 ? (
-                <div className="col-span-full text-center py-12">
-                  <FolderOpen className="w-16 h-16 text-white/20 mx-auto mb-4" />
-                  <p className="text-white/50">Ресурсы не найдены</p>
-                </div>
-              ) : (
-                filteredResources.map((resource) => (
-                  <div key={resource.id} className="glass-card p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        {getFileIcon(resource.file_type)}
-                        <span className="text-xs bg-[#8b5cf6]/20 text-white px-2 py-1 rounded-full">
-                          {getCategoryName(resource.category)}
-                        </span>
-                      </div>
-                      
-                      {user.role === 'psychologist' && (
-                        <button
-                          onClick={() => handleDeleteResource(resource.id)}
-                          className="text-white/40 hover:text-red-400 transition-colors"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                    
-                    <h3 className="text-white font-medium text-lg mb-2">{resource.title}</h3>
-                    <p className="text-white/70 text-sm mb-4">{resource.description}</p>
-                    
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-white/40">
-                        {new Date(resource.created_at).toLocaleDateString('ru-RU')}
-                      </span>
-                      
-                      {user.role === 'user' && !resource.is_read && (
-                        <button
-                          onClick={() => handleMarkAsRead(resource.id)}
-                          className="glass-button px-3 py-1 text-xs flex items-center gap-1"
-                        >
-                          <Check className="w-3 h-3" />
-                          Прочитано
-                        </button>
-                      )}
-                      
-                      {user.role === 'user' && resource.is_read && (
-                        <span className="text-xs text-[#22c55e] flex items-center gap-1">
-                          <Check className="w-3 h-3" />
-                          Прочитано
-                        </span>
-                      )}
-                    </div>
-                    
-                    <a
-                      href={resource.file_url}
-                      download
-                      className="mt-3 w-full block glass-button py-2 text-center flex items-center justify-center gap-2"
-                    >
-                      <Download className="w-4 h-4" />
-                      Скачать файл
-                    </a>
-                    
-                    {user.role === 'psychologist' && resource.patient_id && (
-                      <div className="mt-3 pt-3 border-t border-white/10">
-                        <p className="text-xs text-white/60">
-                          Назначен: {resource.patient?.first_name} {resource.patient?.last_name}
-                        </p>
-                      </div>
+                                    <div className="flex items-center justify-between text-[10px] text-white/30 pt-3 border-t border-white/5">
+                                        <span>{(resource.file_size / (1024 * 1024)).toFixed(1)} MB</span>
+                                        <span>{format(new Date(resource.created_at), 'd MMM yyyy', { locale: ru })}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     )}
-                  </div>
-                ))
-              )}
+                </div>
             </div>
-          )}
         </div>
-      </div>
-    </div>
-  );
-};
+    )
+}
 
-export default Resources;
+export default Resources

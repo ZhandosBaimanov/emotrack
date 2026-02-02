@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Enum as SQLEnum
+from sqlalchemy import Column, Integer, String, ForeignKey, Enum as SQLEnum, DateTime
 from sqlalchemy.orm import relationship
 import enum
 
@@ -28,6 +28,8 @@ class User(Base):
     # Ссылка на психолога (только для пациентов)
     linked_psychologist_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     
+    last_seen = Column(DateTime(timezone=True), nullable=True)
+
     # Self-referencing relationships
     psychologist = relationship(
         "User", 
@@ -35,3 +37,5 @@ class User(Base):
         backref="patients", 
         foreign_keys=[linked_psychologist_id]
     )
+
+    resources = relationship("Resource", back_populates="psychologist", cascade="all, delete-orphan")

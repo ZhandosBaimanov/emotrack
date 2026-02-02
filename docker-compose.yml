@@ -25,6 +25,8 @@ services:
       - db
     ports:
       - '8000:8000'
+    volumes:
+      - uploads:/app/uploads
 
   frontend:
     build:
@@ -38,3 +40,4 @@ services:
 
 volumes:
   pgdata:
+  uploads:
