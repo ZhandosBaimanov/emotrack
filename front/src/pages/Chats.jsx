@@ -1,17 +1,23 @@
 import { format } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import {
+	Attachment,
 	ChevronLeft,
+	FileText,
+	Image,
 	Loader2,
 	MessageCircle,
 	MessageSquare,
 	Send,
 	User,
 	Users,
+	Video,
+	Headphones,
+	X,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { emotionsAPI } from '../api/api'
+import { messagesAPI } from '../api/api'
 import { DashboardHeader } from '../components/dashboard'
 import { useAuth } from '../context/AuthContext'
 
@@ -26,26 +32,46 @@ const Chats = () => {
 	const [messages, setMessages] = useState([])
 	const [newMessage, setNewMessage] = useState('')
 	const [sending, setSending] = useState(false)
+	const [typingUsers, setTypingUsers] = useState([]) // Track who is typing
+	const [onlineUsers, setOnlineUsers] = useState([]) // Track online users
+	const [currentFile, setCurrentFile] = useState(null)
+	const [uploadingFile, setUploadingFile] = useState(false)
+	const ws = useRef(null) // WebSocket connection
 
 	useEffect(() => {
-		const fetchPatients = async () => {
+		const initializeChat = async () => {
 			try {
-				const data = await emotionsAPI.getMyPatients()
-				setPatients(data)
+				if (user.role === 'psychologist') {
+					const data = await messagesAPI.getMyPatients()
+					setPatients(data)
+				} else if (user.role === 'user') {
+					const therapist = await messagesAPI.getMyTherapist()
+					if (therapist) {
+						setPatients([therapist])
+					}
+				}
 			} catch (err) {
-				console.error('Ошибка загрузки пациентов:', err)
+				console.error('Ошибка загрузки пользователей:', err)
 			} finally {
 				setLoading(false)
 			}
 		}
-		fetchPatients()
-	}, [])
+		initializeChat()
+
+		// Establish WebSocket connection
+		connectWebSocket()
+
+		// Cleanup on unmount
+		return () => {
+			if (ws.current) {
+				ws.current.close()
+			}
+		}
+	}, [user.id])
 
 	useEffect(() => {
 		if (selectedPatient) {
-			// В реальном приложении здесь будет загрузка сообщений из API
-			// Для демонстрации используем mock данные
-			loadMockMessages()
+			loadChatHistory()
 		}
 	}, [selectedPatient])
 
@@ -53,71 +79,158 @@ const Chats = () => {
 		scrollToBottom()
 	}, [messages])
 
+	const connectWebSocket = () => {
+		const wsUrl = process.env.VITE_WS_URL || 'ws://localhost:8000/ws/chat'
+		ws.current = new WebSocket(wsUrl)
+
+		ws.current.onopen = () => {
+			console.log('WebSocket connected')
+			// Send authentication token
+			ws.current.send(JSON.stringify({
+				type: 'authenticate',
+				token: localStorage.getItem('token')
+			}))
+		}
+
+		ws.current.onmessage = (event) => {
+			const data = JSON.parse(event.data)
+
+			switch (data.type) {
+				case 'message':
+					setMessages(prev => [...prev, data.message])
+					break
+				case 'typing':
+					if (data.user_id !== user.id) {
+						setTypingUsers(prev => [...prev, data.user_id])
+						// Clear typing indicator after delay
+						setTimeout(() => {
+							setTypingUsers(prev => prev.filter(id => id !== data.user_id))
+						}, 3000)
+					}
+					break
+				case 'stop_typing':
+					setTypingUsers(prev => prev.filter(id => id !== data.user_id))
+					break
+				case 'online_status':
+					setOnlineUsers(data.online_users)
+					break
+				case 'read_receipt':
+					// Update message read status
+					setMessages(prev =>
+						prev.map(msg =>
+							msg.id === data.message_id ? { ...msg, is_read: true } : msg
+						)
+					)
+					break
+				default:
+					break
+			}
+		}
+
+		ws.current.onerror = (error) => {
+			console.error('WebSocket error:', error)
+		}
+
+		ws.current.onclose = () => {
+			console.log('WebSocket disconnected')
+			// Attempt to reconnect after delay
+			setTimeout(connectWebSocket, 3000)
+		}
+	}
+
+	const loadChatHistory = async () => {
+		try {
+			let targetUserId = selectedPatient.id
+			if (user.role === 'user') {
+				// For patient, always chat with their therapist
+				targetUserId = selectedPatient.id
+			}
+
+			const chatHistory = await messagesAPI.getChatHistory(targetUserId)
+			setMessages(chatHistory)
+		} catch (err) {
+			console.error('Ошибка загрузки истории чата:', err)
+		}
+	}
+
 	const scrollToBottom = () => {
 		messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
 	}
 
-	const loadMockMessages = () => {
-		// Mock данные для демонстрации
-		const mockMessages = [
-			{
-				id: 1,
-				text: 'Здравствуйте! Как вы себя чувствуете сегодня?',
-				sender: 'psychologist',
-				timestamp: new Date(Date.now() - 3600000),
-			},
-			{
-				id: 2,
-				text: 'Добрый день! Чувствую себя немного лучше, спасибо.',
-				sender: 'patient',
-				timestamp: new Date(Date.now() - 3000000),
-			},
-			{
-				id: 3,
-				text: 'Отлично! Заметили ли вы какие-то изменения после наших последних сеансов?',
-				sender: 'psychologist',
-				timestamp: new Date(Date.now() - 2400000),
-			},
-			{
-				id: 4,
-				text: 'Да, стал легче засыпать и меньше тревожусь по мелочам.',
-				sender: 'patient',
-				timestamp: new Date(Date.now() - 1800000),
-			},
-		]
-		setMessages(mockMessages)
-	}
-
 	const handleSendMessage = async e => {
 		e.preventDefault()
-		if (!newMessage.trim() || sending) return
+		if ((!newMessage.trim() && !currentFile) || sending) return
+
+		const messageData = {
+			text: newMessage.trim(),
+			recipient_id: selectedPatient.id,
+			timestamp: new Date().toISOString(),
+			file: currentFile
+		}
 
 		setSending(true)
 		try {
-			// В реальном приложении здесь будет отправка через API
-			const message = {
-				id: Date.now(),
-				text: newMessage,
-				sender: 'psychologist',
-				timestamp: new Date(),
-			}
-			setMessages([...messages, message])
-			setNewMessage('')
+			// Send message via WebSocket
+			ws.current.send(JSON.stringify({
+				type: 'message',
+				...messageData
+			}))
 
-			// Имитация ответа пациента (для демонстрации)
-			setTimeout(() => {
-				const autoReply = {
-					id: Date.now() + 1,
-					text: 'Спасибо за сообщение! Я подумаю над вашим вопросом.',
-					sender: 'patient',
-					timestamp: new Date(),
-				}
-				setMessages(prev => [...prev, autoReply])
-			}, 2000)
+			if (currentFile) {
+				// Handle file upload
+				await uploadFile(currentFile, selectedPatient.id)
+				setCurrentFile(null)
+			}
+
+			setNewMessage('')
 		} catch (err) {
 			console.error('Ошибка отправки сообщения:', err)
 		} finally {
 			setSending(false)
+		}
+	}
+
+	const uploadFile = async (file, recipientId) => {
+		const formData = new FormData()
+		formData.append('file', file)
+		formData.append('recipient_id', recipientId)
+
+		try {
+			setUploadingFile(true)
+			await messagesAPI.sendFile(formData)
+		} catch (error) {
+			console.error('Ошибка загрузки файла:', error)
+		} finally {
+			setUploadingFile(false)
+		}
+	}
+
+	const handleFileSelect = (e) => {
+		const file = e.target.files[0]
+		if (file) {
+			setCurrentFile(file)
+		}
+	}
+
+	const removeFile = () => {
+		setCurrentFile(null)
+	}
+
+	const handleTyping = () => {
+		if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+			ws.current.send(JSON.stringify({
+				type: 'typing_start',
+				recipient_id: selectedPatient.id
+			}))
+		}
+	}
+
+	const stopTyping = () => {
+		if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+			ws.current.send(JSON.stringify({
+				type: 'typing_stop',
+				recipient_id: selectedPatient.id
+			}))
 		}
 	}
 
@@ -129,17 +242,25 @@ const Chats = () => {
 		return format(date, 'd MMMM', { locale: ru })
 	}
 
+	const isOnline = (userId) => {
+		return onlineUsers.includes(userId)
+	}
+
 	return (
 		<div className='min-h-screen p-4 md:p-6 lg:p-8'>
 			<div className='max-w-7xl mx-auto'>
 				<DashboardHeader activeTab='chat' />
 
 				<div className='grid md:grid-cols-12 gap-6'>
-					{/* Список пациентов */}
+					{/* Список пользователей */}
 					<div className='md:col-span-4 glass-card p-6'>
 						<h2 className='text-lg font-semibold text-white mb-4 flex items-center gap-2'>
-							<Users className='w-5 h-5 text-[#8b5cf6]' />
-							Чаты с пациентами
+							{user.role === 'psychologist' ? (
+								<Users className='w-5 h-5 text-[#8b5cf6]' />
+							) : (
+								<User className='w-5 h-5 text-[#8b5cf6]' />
+							)}
+							{user.role === 'psychologist' ? 'Чаты с пациентами' : 'Чаты с психологом'}
 						</h2>
 
 						{loading ? (
@@ -148,15 +269,29 @@ const Chats = () => {
 							</div>
 						) : patients.length === 0 ? (
 							<div className='text-center py-8'>
-								<Users className='w-12 h-12 text-white/20 mx-auto mb-3' />
-								<p className='text-white/50'>Пока нет пациентов</p>
+								{user.role === 'psychologist' ? (
+									<Users className='w-12 h-12 text-white/20 mx-auto mb-3' />
+								) : (
+									<User className='w-12 h-12 text-white/20 mx-auto mb-3' />
+								)}
+								<p className='text-white/50'>
+									{user.role === 'psychologist' ? 'Пока нет пациентов' : 'Нет доступных психологов'}
+								</p>
 							</div>
 						) : (
 							<div className='space-y-2'>
 								{patients.map(patient => (
 									<button
 										key={patient.id}
-										onClick={() => setSelectedPatient(patient)}
+										onClick={() => {
+											setSelectedPatient(patient)
+											if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+												ws.current.send(JSON.stringify({
+													type: 'mark_as_read',
+													recipient_id: patient.id
+												}))
+											}
+										}}
 										className={`w-full p-4 rounded-xl border transition-all duration-300 flex items-center gap-3 ${
 											selectedPatient?.id === patient.id
 												? 'bg-[#8b5cf6]/20 border-[#8b5cf6]/50'
@@ -168,20 +303,24 @@ const Chats = () => {
 												<User className='w-5 h-5 text-white' />
 											</div>
 											{/* Индикатор онлайн статуса */}
-											<div className='absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-[#1a1a2e]' />
+											<div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#1a1a2e] ${isOnline(patient.id) ? 'bg-green-400' : 'bg-gray-400'}`} />
 										</div>
 										<div className='text-left flex-1'>
 											<p className='text-white font-medium'>
 												{patient.first_name} {patient.last_name}
 											</p>
-											<p className='text-white/40 text-xs truncate'>
-												Последнее сообщение...
-											</p>
+											{messages.length > 0 && (
+												<p className='text-white/40 text-xs truncate'>
+													{messages[messages.length - 1]?.text || 'Последнее сообщение...'}
+												</p>
+											)}
 										</div>
 										{/* Непрочитанные сообщения */}
-										<div className='w-6 h-6 bg-[#8b5cf6] rounded-full flex items-center justify-center text-xs text-white font-bold'>
-											2
-										</div>
+										{patient.unread_count > 0 && (
+											<div className='w-6 h-6 bg-[#8b5cf6] rounded-full flex items-center justify-center text-xs text-white font-bold'>
+												{patient.unread_count}
+											</div>
+										)}
 									</button>
 								))}
 							</div>
@@ -194,7 +333,9 @@ const Chats = () => {
 							<div className='flex-1 flex flex-col items-center justify-center p-6'>
 								<MessageCircle className='w-16 h-16 text-white/10 mb-4' />
 								<p className='text-white/50 text-center'>
-									Выберите пациента для начала общения
+									{user.role === 'psychologist'
+										? 'Выберите пациента для начала общения'
+										: 'Выберите психолога для начала общения'}
 								</p>
 							</div>
 						) : (
@@ -207,15 +348,15 @@ const Chats = () => {
 												<div className='w-12 h-12 rounded-full bg-gradient-to-br from-[#8b5cf6] to-[#6d28d9] flex items-center justify-center'>
 													<User className='w-6 h-6 text-white' />
 												</div>
-												<div className='absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-[#1a1a2e]' />
+												<div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#1a1a2e] ${isOnline(selectedPatient.id) ? 'bg-green-400' : 'bg-gray-400'}`} />
 											</div>
 											<div>
 												<h3 className='text-white font-semibold'>
 													{selectedPatient.first_name} {selectedPatient.last_name}
 												</h3>
-												<p className='text-[#22c55e] text-xs flex items-center gap-1'>
-													<span className='w-2 h-2 bg-green-400 rounded-full animate-pulse' />
-													Онлайн
+												<p className={`${isOnline(selectedPatient.id) ? 'text-[#22c55e]' : 'text-gray-400'} text-xs flex items-center gap-1`}>
+													<span className={`w-2 h-2 rounded-full animate-pulse ${isOnline(selectedPatient.id) ? 'bg-green-400' : 'bg-gray-400'}`} />
+													{isOnline(selectedPatient.id) ? 'Онлайн' : 'Не в сети'}
 												</p>
 											</div>
 										</div>
@@ -235,47 +376,115 @@ const Chats = () => {
 										<div
 											key={message.id}
 											className={`flex ${
-												message.sender === 'psychologist'
+												message.sender_id === user.id
 													? 'justify-end'
 													: 'justify-start'
 											}`}
 										>
 											<div
 												className={`max-w-[70%] ${
-													message.sender === 'psychologist'
+													message.sender_id === user.id
 														? 'bg-[#8b5cf6]/30 border-[#8b5cf6]/50'
 														: 'bg-white/10 border-white/20'
-												} border rounded-2xl p-4`}
+												} border rounded-2xl p-4 relative`}
 											>
-												<p className='text-white text-sm leading-relaxed'>
-													{message.text}
-												</p>
-												<p className='text-white/40 text-xs mt-2'>
-													{formatMessageTime(message.timestamp)}
-												</p>
+												{message.file_url && (
+													<a
+														href={message.file_url}
+														download
+														className="flex items-center gap-2 mb-2 text-blue-300 hover:underline text-sm"
+													>
+														<FileIcon fileType={message.file_type} />
+														Скачать файл
+													</a>
+												)}
+												{message.text && (
+													<p className='text-white text-sm leading-relaxed'>
+														{message.text}
+													</p>
+												)}
+												<div className="flex justify-between items-center mt-1">
+													<p className='text-white/40 text-xs'>
+														{formatMessageTime(new Date(message.timestamp))}
+													</p>
+													{message.sender_id === user.id && message.is_read && (
+														<span className="text-xs text-[#22c55e] ml-2">
+															Прочитано
+														</span>
+													)}
+												</div>
 											</div>
 										</div>
 									))}
+
+									{typingUsers.includes(selectedPatient.id) && (
+										<div className="flex justify-start">
+											<div className="bg-white/10 border border-white/20 rounded-2xl p-4 max-w-[70%]">
+												<p className="text-white/60 text-sm italic">печатает...</p>
+											</div>
+										</div>
+									)}
+
 									<div ref={messagesEndRef} />
 								</div>
 
 								{/* Поле ввода */}
 								<div className='p-6 border-t border-white/10'>
+									{/* Selected file preview */}
+									{currentFile && (
+										<div className="flex items-center gap-2 mb-3 p-2 bg-white/10 rounded-lg">
+											<FileIcon fileType={currentFile.type} />
+											<span className="text-white text-sm truncate">{currentFile.name}</span>
+											<span className="text-white/60 text-xs">({(currentFile.size / 1024 / 1024).toFixed(2)} MB)</span>
+											<button
+												onClick={removeFile}
+												className="ml-auto text-white/60 hover:text-white"
+											>
+												<X className="w-4 h-4" />
+											</button>
+										</div>
+									)}
+
 									<form onSubmit={handleSendMessage} className='flex gap-3'>
+										<div className="relative">
+											<input
+												type="file"
+												id="file-upload"
+												className="hidden"
+												onChange={handleFileSelect}
+												accept="image/*,application/pdf,text/plain,audio/*,video/*"
+											/>
+											<label
+												htmlFor="file-upload"
+												className="cursor-pointer glass-button p-2 flex items-center"
+											>
+												<Attachment className="w-5 h-5" />
+											</label>
+										</div>
+
 										<input
 											type='text'
 											value={newMessage}
-											onChange={e => setNewMessage(e.target.value)}
+											onChange={e => {
+												setNewMessage(e.target.value)
+												if (e.target.value.trim()) {
+													handleTyping()
+												} else {
+													stopTyping()
+												}
+											}}
+											onKeyDown={() => handleTyping()}
+											onBlur={stopTyping}
 											placeholder='Напишите сообщение...'
 											className='flex-1 glass-input'
 											disabled={sending}
 										/>
 										<button
 											type='submit'
-											disabled={!newMessage.trim() || sending}
+											disabled={(!newMessage.trim() && !currentFile) || sending || uploadingFile}
 											className='glass-button px-6 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2'
 										>
-											{sending ? (
+											{sending || uploadingFile ? (
 												<Loader2 className='w-5 h-5 animate-spin' />
 											) : (
 												<>
@@ -293,6 +502,14 @@ const Chats = () => {
 			</div>
 		</div>
 	)
+}
+
+// Helper component to render file icons based on file type
+const FileIcon = ({ fileType }) => {
+	if (fileType && fileType.startsWith('image/')) return <Image className="w-4 h-4" />;
+	if (fileType && fileType.includes('video/')) return <Video className="w-4 h-4" />;
+	if (fileType && fileType.includes('audio/')) return <Headphones className="w-4 h-4" />;
+	return <FileText className="w-4 h-4" />;
 }
 
 export default Chats

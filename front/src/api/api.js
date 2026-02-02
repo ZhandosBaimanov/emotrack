@@ -118,4 +118,46 @@ export const emotionsAPI = {
         },
 }
 
+// API функции для ресурсов
+export const resourcesAPI = {
+        // Загрузить ресурс (для психолога)
+        uploadResource: (formData) => api.post('/api/resources', formData),
+
+        // Получить мои ресурсы (для психолога)
+        getMyResources: () => api.get('/api/resources/psychologist'),
+
+        // Получить ресурсы для пациента
+        getPatientResources: () => api.get('/api/resources/patient'),
+
+        // Удалить ресурс (для психолога)
+        deleteResource: (id) => api.delete(`/api/resources/${id}`),
+
+        // Назначить ресурс пациенту (для психолога)
+        assignToPatient: (resourceId, patientId) => api.post(`/api/resources/${resourceId}/assign`, { patientId }),
+
+        // Отметить ресурс как прочитанный (для пациента)
+        markAsRead: (id) => api.patch(`/api/resources/${id}/read`),
+
+        // Получить список пациентов (для назначения ресурсов)
+        getMyPatients: () => api.get('/users/my-patients'),
+}
+
+// API функции для чатов/сообщений
+export const messagesAPI = {
+        // Получить список пациентов (для психолога)
+        getMyPatients: () => api.get('/messages/patients'),
+
+        // Получить психолога (для пациента)
+        getMyTherapist: () => api.get('/messages/therapist'),
+
+        // Получить историю чата
+        getChatHistory: (recipientId) => api.get(`/messages/history/${recipientId}`),
+
+        // Отправить файл
+        sendFile: (formData) => api.post('/messages/file', formData),
+
+        // Получить непрочитанные сообщения
+        getUnreadCount: () => api.get('/messages/unread-count'),
+}
+
 export default api
