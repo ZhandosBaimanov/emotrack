@@ -15,6 +15,7 @@ import Analytics from './pages/Analytics'
 import Journal from './pages/Journal'
 import Chats from './pages/Chats'
 import Resources from './pages/Resources'
+import SettingsPage from './pages/Settings'
 
 function App() {
         return (
@@ -28,6 +29,16 @@ function App() {
                                                 {/* Публичные маршруты */}
                                                 <Route path='/login' element={<Login />} />
                                                 <Route path='/register' element={<Register />} />
+
+                                                {/* Общие защищенные маршруты */}
+                                                <Route
+                                                        path='/settings'
+                                                        element={
+                                                                <ProtectedRoute allowedRoles={['user', 'psychologist']}>
+                                                                        <SettingsPage />
+                                                                </ProtectedRoute>
+                                                        }
+                                                />
 
                                                 {/* Защищенные маршруты для пациентов */}
                                                 <Route
