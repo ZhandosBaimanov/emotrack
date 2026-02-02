@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { format } from 'date-fns'
 
 // Базовый URL API
 const API_BASE_URL = '/api'
@@ -182,6 +183,41 @@ export const messagesAPI = {
 		const response = await api.get('/messages/unread-count')
 		return response.data
 	},
+}
+
+// API функции для сеансов
+export const sessionsAPI = {
+	// Отправить запрос на сеанс
+	requestSession: async (psychologistId, date, time, notes) => {
+		const response = await api.post('/sessions/request', {
+			psychologist_id: psychologistId,
+			scheduled_date: format(date, 'yyyy-MM-dd'),
+			scheduled_time: time,
+			notes
+		})
+		return response.data
+	},
+
+	// Получить мои сеансы
+	getMySessions: async () => {
+		const response = await api.get('/sessions/my')
+		return response.data
+	},
+
+	// Получить доступные слоты психолога
+	getSlots: async (psychologistId, date) => {
+		const response = await api.get(`/sessions/slots/${psychologistId}?date=${date}`)
+		return response.data
+	},
+
+	// Обновить статус сеанса (для психолога или отмены пациентом)
+	updateStatus: async (sessionId, status, reason) => {
+		const response = await api.patch(`/sessions/${sessionId}/status`, {
+			status,
+			notes: reason
+		})
+		return response.data
+	}
 }
 
 export default api

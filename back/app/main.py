@@ -7,9 +7,9 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
 from app.database import engine
-from app.models import User, Emotion, Message  # noqa: F401 - нужно для создания таблиц
+from app.models import User, Emotion, Message, Session  # noqa: F401 - нужно для создания таблиц
 from app.database import Base
-from app.routers import auth, users, emotions, messages
+from app.routers import auth, users, emotions, messages, sessions
 from app.init_db import init_db
 
 # Создаем таблицы
@@ -41,6 +41,7 @@ app.include_router(auth.router, prefix="/api")
 app.include_router(users.router, prefix="/api")
 app.include_router(emotions.router, prefix="/api")
 app.include_router(messages.router, prefix="/api")
+app.include_router(sessions.router, prefix="/api")
 
 # Serve static files in production
 static_dir = Path(__file__).resolve().parent.parent.parent / "front" / "dist"
