@@ -134,6 +134,7 @@ const Register = () => {
 								value={formData.email}
 								onChange={handleChange}
 								placeholder='Email'
+								autoComplete='email'
 								required
 								className='glass-input w-full pl-10 py-2.5'
 							/>
@@ -148,6 +149,7 @@ const Register = () => {
 								value={formData.first_name}
 								onChange={handleChange}
 								placeholder='Имя'
+								autoComplete='given-name'
 								required
 								className='glass-input w-full pl-10 py-2.5'
 							/>
@@ -162,6 +164,7 @@ const Register = () => {
 								value={formData.last_name}
 								onChange={handleChange}
 								placeholder='Фамилия'
+								autoComplete='family-name'
 								required
 								className='glass-input w-full pl-10 py-2.5'
 							/>
@@ -176,6 +179,7 @@ const Register = () => {
 								value={formData.password}
 								onChange={handleChange}
 								placeholder='Пароль'
+								autoComplete='new-password'
 								required
 								minLength={6}
 								className='glass-input w-full pl-10 pr-10 py-2.5'

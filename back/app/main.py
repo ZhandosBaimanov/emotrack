@@ -7,9 +7,9 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
 from app.database import engine
-from app.models import User, Emotion  # noqa: F401 - нужно для создания таблиц
+from app.models import User, Emotion, Message  # noqa: F401 - нужно для создания таблиц
 from app.database import Base
-from app.routers import auth, users, emotions
+from app.routers import auth, users, emotions, messages
 from app.init_db import init_db
 
 # Создаем таблицы
@@ -29,10 +29,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Создаём директорию для загрузок
+UPLOAD_DIR = Path("/app/uploads")
+UPLOAD_DIR.mkdir(exist_ok=True)
+
+# Подключаем статику для загруженных файлов
+app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
+
 # Подключаем роутеры
 app.include_router(auth.router, prefix="/api")
 app.include_router(users.router, prefix="/api")
 app.include_router(emotions.router, prefix="/api")
+app.include_router(messages.router, prefix="/api")
 
 # Serve static files in production
 static_dir = Path(__file__).resolve().parent.parent.parent / "front" / "dist"

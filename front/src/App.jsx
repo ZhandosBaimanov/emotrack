@@ -14,6 +14,7 @@ import PatientDashboard from './pages/PatientDashboard'
 import Analytics from './pages/Analytics'
 import Journal from './pages/Journal'
 import Chats from './pages/Chats'
+import Resources from './pages/Resources'
 
 function App() {
         return (
@@ -34,6 +35,22 @@ function App() {
                                                         element={
                                                                 <ProtectedRoute allowedRoles={['user']}>
                                                                         <PatientDashboard />
+                                                                </ProtectedRoute>
+                                                        }
+                                                />
+                                                <Route
+                                                        path='/dashboard/resources'
+                                                        element={
+                                                                <ProtectedRoute allowedRoles={['user']}>
+                                                                        <Resources />
+                                                                </ProtectedRoute>
+                                                        }
+                                                />
+                                                <Route
+                                                        path='/dashboard/chats'
+                                                        element={
+                                                                <ProtectedRoute allowedRoles={['user']}>
+                                                                        <Chats />
                                                                 </ProtectedRoute>
                                                         }
                                                 />
@@ -68,6 +85,14 @@ function App() {
                                                         element={
                                                                 <ProtectedRoute allowedRoles={['psychologist']}>
                                                                         <Chats />
+                                                                </ProtectedRoute>
+                                                        }
+                                                />
+                                                <Route
+                                                        path='/psychologist/resources'
+                                                        element={
+                                                                <ProtectedRoute allowedRoles={['psychologist']}>
+                                                                        <Resources />
                                                                 </ProtectedRoute>
                                                         }
                                                 />

@@ -147,6 +147,7 @@ const Login = () => {
 											value={formData.email}
 											onChange={handleChange}
 											placeholder='example@emotrack.ru'
+											autoComplete='email'
 											required
 											className='glass-input w-full'
 										/>
@@ -168,6 +169,7 @@ const Login = () => {
 												value={formData.password}
 												onChange={handleChange}
 												placeholder='Введите ваш пароль'
+												autoComplete='current-password'
 												required
 												className='glass-input w-full pr-12'
 											/>
