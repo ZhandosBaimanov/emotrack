@@ -20,7 +20,7 @@ const WelcomeCard = () => {
 				</h2>
 
 				<p className='text-white/60 text-base md:text-lg font-light'>
-					AI Журнал слушает вас...
+					emoAI слушает вас...
 				</p>
 			</div>
 		</div>
