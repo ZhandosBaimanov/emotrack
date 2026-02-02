@@ -1,18 +1,17 @@
 import { format } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import {
-	Attachment,
 	ChevronLeft,
 	FileText,
+	Headphones,
 	Image,
 	Loader2,
 	MessageCircle,
-	MessageSquare,
+	Paperclip,
 	Send,
 	User,
 	Users,
 	Video,
-	Headphones,
 	X,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
@@ -67,7 +66,7 @@ const Chats = () => {
 				ws.current.close()
 			}
 		}
-	}, [user.id])
+	}, [])
 
 	useEffect(() => {
 		if (selectedPatient) {
@@ -80,19 +79,14 @@ const Chats = () => {
 	}, [messages])
 
 	const connectWebSocket = () => {
-		const wsUrl = process.env.VITE_WS_URL || 'ws://localhost:8000/ws/chat'
+		const wsUrl = `ws://localhost:8000/api/messages/ws/${user.id}`
 		ws.current = new WebSocket(wsUrl)
 
 		ws.current.onopen = () => {
 			console.log('WebSocket connected')
-			// Send authentication token
-			ws.current.send(JSON.stringify({
-				type: 'authenticate',
-				token: localStorage.getItem('token')
-			}))
 		}
 
-		ws.current.onmessage = (event) => {
+		ws.current.onmessage = event => {
 			const data = JSON.parse(event.data)
 
 			switch (data.type) {
@@ -118,8 +112,8 @@ const Chats = () => {
 					// Update message read status
 					setMessages(prev =>
 						prev.map(msg =>
-							msg.id === data.message_id ? { ...msg, is_read: true } : msg
-						)
+							msg.id === data.message_id ? { ...msg, is_read: true } : msg,
+						),
 					)
 					break
 				default:
@@ -127,7 +121,7 @@ const Chats = () => {
 			}
 		}
 
-		ws.current.onerror = (error) => {
+		ws.current.onerror = error => {
 			console.error('WebSocket error:', error)
 		}
 
@@ -161,20 +155,18 @@ const Chats = () => {
 		e.preventDefault()
 		if ((!newMessage.trim() && !currentFile) || sending) return
 
-		const messageData = {
-			text: newMessage.trim(),
-			recipient_id: selectedPatient.id,
-			timestamp: new Date().toISOString(),
-			file: currentFile
-		}
-
 		setSending(true)
 		try {
-			// Send message via WebSocket
-			ws.current.send(JSON.stringify({
-				type: 'message',
-				...messageData
-			}))
+			// Отправляем через WebSocket
+			if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+				ws.current.send(
+					JSON.stringify({
+						type: 'message',
+						content: newMessage.trim(),
+						recipient_id: selectedPatient.id,
+					}),
+				)
+			}
 
 			if (currentFile) {
 				// Handle file upload
@@ -191,13 +183,11 @@ const Chats = () => {
 	}
 
 	const uploadFile = async (file, recipientId) => {
-		const formData = new FormData()
-		formData.append('file', file)
-		formData.append('recipient_id', recipientId)
-
 		try {
 			setUploadingFile(true)
-			await messagesAPI.sendFile(formData)
+			const response = await messagesAPI.sendFile(file, recipientId)
+			// Добавляем сообщение с файлом в список
+			setMessages(prev => [...prev, response])
 		} catch (error) {
 			console.error('Ошибка загрузки файла:', error)
 		} finally {
@@ -205,7 +195,7 @@ const Chats = () => {
 		}
 	}
 
-	const handleFileSelect = (e) => {
+	const handleFileSelect = e => {
 		const file = e.target.files[0]
 		if (file) {
 			setCurrentFile(file)
@@ -218,20 +208,17 @@ const Chats = () => {
 
 	const handleTyping = () => {
 		if (ws.current && ws.current.readyState === WebSocket.OPEN) {
-			ws.current.send(JSON.stringify({
-				type: 'typing_start',
-				recipient_id: selectedPatient.id
-			}))
+			ws.current.send(
+				JSON.stringify({
+					type: 'typing',
+					recipient_id: selectedPatient.id,
+				}),
+			)
 		}
 	}
 
 	const stopTyping = () => {
-		if (ws.current && ws.current.readyState === WebSocket.OPEN) {
-			ws.current.send(JSON.stringify({
-				type: 'typing_stop',
-				recipient_id: selectedPatient.id
-			}))
-		}
+		// Опционально - можно добавить stop typing event
 	}
 
 	const formatMessageTime = date => {
@@ -242,7 +229,7 @@ const Chats = () => {
 		return format(date, 'd MMMM', { locale: ru })
 	}
 
-	const isOnline = (userId) => {
+	const isOnline = userId => {
 		return onlineUsers.includes(userId)
 	}
 
@@ -260,7 +247,9 @@ const Chats = () => {
 							) : (
 								<User className='w-5 h-5 text-[#8b5cf6]' />
 							)}
-							{user.role === 'psychologist' ? 'Чаты с пациентами' : 'Чаты с психологом'}
+							{user.role === 'psychologist'
+								? 'Чаты с пациентами'
+								: 'Чаты с психологом'}
 						</h2>
 
 						{loading ? (
@@ -275,7 +264,9 @@ const Chats = () => {
 									<User className='w-12 h-12 text-white/20 mx-auto mb-3' />
 								)}
 								<p className='text-white/50'>
-									{user.role === 'psychologist' ? 'Пока нет пациентов' : 'Нет доступных психологов'}
+									{user.role === 'psychologist'
+										? 'Пока нет пациентов'
+										: 'Нет доступных психологов'}
 								</p>
 							</div>
 						) : (
@@ -285,12 +276,6 @@ const Chats = () => {
 										key={patient.id}
 										onClick={() => {
 											setSelectedPatient(patient)
-											if (ws.current && ws.current.readyState === WebSocket.OPEN) {
-												ws.current.send(JSON.stringify({
-													type: 'mark_as_read',
-													recipient_id: patient.id
-												}))
-											}
 										}}
 										className={`w-full p-4 rounded-xl border transition-all duration-300 flex items-center gap-3 ${
 											selectedPatient?.id === patient.id
@@ -303,7 +288,9 @@ const Chats = () => {
 												<User className='w-5 h-5 text-white' />
 											</div>
 											{/* Индикатор онлайн статуса */}
-											<div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#1a1a2e] ${isOnline(patient.id) ? 'bg-green-400' : 'bg-gray-400'}`} />
+											<div
+												className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#1a1a2e] ${isOnline(patient.id) ? 'bg-green-400' : 'bg-gray-400'}`}
+											/>
 										</div>
 										<div className='text-left flex-1'>
 											<p className='text-white font-medium'>
@@ -311,7 +298,8 @@ const Chats = () => {
 											</p>
 											{messages.length > 0 && (
 												<p className='text-white/40 text-xs truncate'>
-													{messages[messages.length - 1]?.text || 'Последнее сообщение...'}
+													{messages[messages.length - 1]?.text ||
+														'Последнее сообщение...'}
 												</p>
 											)}
 										</div>
@@ -328,7 +316,10 @@ const Chats = () => {
 					</div>
 
 					{/* Окно чата */}
-					<div className='md:col-span-8 glass-card flex flex-col' style={{ height: '600px' }}>
+					<div
+						className='md:col-span-8 glass-card flex flex-col'
+						style={{ height: '600px' }}
+					>
 						{!selectedPatient ? (
 							<div className='flex-1 flex flex-col items-center justify-center p-6'>
 								<MessageCircle className='w-16 h-16 text-white/10 mb-4' />
@@ -348,15 +339,24 @@ const Chats = () => {
 												<div className='w-12 h-12 rounded-full bg-gradient-to-br from-[#8b5cf6] to-[#6d28d9] flex items-center justify-center'>
 													<User className='w-6 h-6 text-white' />
 												</div>
-												<div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#1a1a2e] ${isOnline(selectedPatient.id) ? 'bg-green-400' : 'bg-gray-400'}`} />
+												<div
+													className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#1a1a2e] ${isOnline(selectedPatient.id) ? 'bg-green-400' : 'bg-gray-400'}`}
+												/>
 											</div>
 											<div>
 												<h3 className='text-white font-semibold'>
-													{selectedPatient.first_name} {selectedPatient.last_name}
+													{selectedPatient.first_name}{' '}
+													{selectedPatient.last_name}
 												</h3>
-												<p className={`${isOnline(selectedPatient.id) ? 'text-[#22c55e]' : 'text-gray-400'} text-xs flex items-center gap-1`}>
-													<span className={`w-2 h-2 rounded-full animate-pulse ${isOnline(selectedPatient.id) ? 'bg-green-400' : 'bg-gray-400'}`} />
-													{isOnline(selectedPatient.id) ? 'Онлайн' : 'Не в сети'}
+												<p
+													className={`${isOnline(selectedPatient.id) ? 'text-[#22c55e]' : 'text-gray-400'} text-xs flex items-center gap-1`}
+												>
+													<span
+														className={`w-2 h-2 rounded-full animate-pulse ${isOnline(selectedPatient.id) ? 'bg-green-400' : 'bg-gray-400'}`}
+													/>
+													{isOnline(selectedPatient.id)
+														? 'Онлайн'
+														: 'Не в сети'}
 												</p>
 											</div>
 										</div>
@@ -390,25 +390,39 @@ const Chats = () => {
 											>
 												{message.file_url && (
 													<a
-														href={message.file_url}
-														download
-														className="flex items-center gap-2 mb-2 text-blue-300 hover:underline text-sm"
+														href={`http://localhost:8000${message.file_url}`}
+														download={message.file_name}
+														target='_blank'
+														rel='noopener noreferrer'
+														className='flex items-center gap-2 mb-2 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors border border-white/10'
 													>
 														<FileIcon fileType={message.file_type} />
-														Скачать файл
+														<div className='flex-1 min-w-0'>
+															<p className='text-white text-sm font-medium truncate'>
+																{message.file_name || 'Файл'}
+															</p>
+															{message.file_size && (
+																<p className='text-white/50 text-xs'>
+																	{(message.file_size / 1024).toFixed(1)} KB
+																</p>
+															)}
+														</div>
+														<span className='text-blue-300 text-xs whitespace-nowrap'>
+															Скачать
+														</span>
 													</a>
 												)}
-												{message.text && (
+												{message.content && (
 													<p className='text-white text-sm leading-relaxed'>
-														{message.text}
+														{message.content}
 													</p>
 												)}
-												<div className="flex justify-between items-center mt-1">
+												<div className='flex justify-between items-center mt-1'>
 													<p className='text-white/40 text-xs'>
 														{formatMessageTime(new Date(message.timestamp))}
 													</p>
 													{message.sender_id === user.id && message.is_read && (
-														<span className="text-xs text-[#22c55e] ml-2">
+														<span className='text-xs text-[#22c55e] ml-2'>
 															Прочитано
 														</span>
 													)}
@@ -418,9 +432,11 @@ const Chats = () => {
 									))}
 
 									{typingUsers.includes(selectedPatient.id) && (
-										<div className="flex justify-start">
-											<div className="bg-white/10 border border-white/20 rounded-2xl p-4 max-w-[70%]">
-												<p className="text-white/60 text-sm italic">печатает...</p>
+										<div className='flex justify-start'>
+											<div className='bg-white/10 border border-white/20 rounded-2xl p-4 max-w-[70%]'>
+												<p className='text-white/60 text-sm italic'>
+													печатает...
+												</p>
 											</div>
 										</div>
 									)}
@@ -432,33 +448,37 @@ const Chats = () => {
 								<div className='p-6 border-t border-white/10'>
 									{/* Selected file preview */}
 									{currentFile && (
-										<div className="flex items-center gap-2 mb-3 p-2 bg-white/10 rounded-lg">
+										<div className='flex items-center gap-2 mb-3 p-2 bg-white/10 rounded-lg'>
 											<FileIcon fileType={currentFile.type} />
-											<span className="text-white text-sm truncate">{currentFile.name}</span>
-											<span className="text-white/60 text-xs">({(currentFile.size / 1024 / 1024).toFixed(2)} MB)</span>
+											<span className='text-white text-sm truncate'>
+												{currentFile.name}
+											</span>
+											<span className='text-white/60 text-xs'>
+												({(currentFile.size / 1024 / 1024).toFixed(2)} MB)
+											</span>
 											<button
 												onClick={removeFile}
-												className="ml-auto text-white/60 hover:text-white"
+												className='ml-auto text-white/60 hover:text-white'
 											>
-												<X className="w-4 h-4" />
+												<X className='w-4 h-4' />
 											</button>
 										</div>
 									)}
 
 									<form onSubmit={handleSendMessage} className='flex gap-3'>
-										<div className="relative">
+										<div className='relative'>
 											<input
-												type="file"
-												id="file-upload"
-												className="hidden"
+												type='file'
+												id='file-upload'
+												className='hidden'
 												onChange={handleFileSelect}
-												accept="image/*,application/pdf,text/plain,audio/*,video/*"
+												accept='image/*,application/pdf,text/plain,audio/*,video/*'
 											/>
 											<label
-												htmlFor="file-upload"
-												className="cursor-pointer glass-button p-2 flex items-center"
+												htmlFor='file-upload'
+												className='cursor-pointer glass-button p-2 flex items-center'
 											>
-												<Attachment className="w-5 h-5" />
+												<Paperclip className='w-5 h-5' />
 											</label>
 										</div>
 
@@ -481,7 +501,11 @@ const Chats = () => {
 										/>
 										<button
 											type='submit'
-											disabled={(!newMessage.trim() && !currentFile) || sending || uploadingFile}
+											disabled={
+												(!newMessage.trim() && !currentFile) ||
+												sending ||
+												uploadingFile
+											}
 											className='glass-button px-6 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2'
 										>
 											{sending || uploadingFile ? (
@@ -506,10 +530,11 @@ const Chats = () => {
 
 // Helper component to render file icons based on file type
 const FileIcon = ({ fileType }) => {
-	if (fileType && fileType.startsWith('image/')) return <Image className="w-4 h-4" />;
-	if (fileType && fileType.includes('video/')) return <Video className="w-4 h-4" />;
-	if (fileType && fileType.includes('audio/')) return <Headphones className="w-4 h-4" />;
-	return <FileText className="w-4 h-4" />;
+	if (fileType === 'image') return <Image className='w-4 h-4' />
+	if (fileType === 'video') return <Video className='w-4 h-4' />
+	if (fileType === 'audio') return <Headphones className='w-4 h-4' />
+	if (fileType === 'pdf') return <FileText className='w-4 h-4 text-red-400' />
+	return <FileText className='w-4 h-4' />
 }
 
 export default Chats
