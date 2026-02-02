@@ -1,6 +1,7 @@
 export { default as AIJournal } from './AIJournal'
 export { default as DashboardHeader } from './DashboardHeader'
 export { default as EmotionInput } from './EmotionInput'
+export { default as MoodChart } from './MoodChart'
 export { default as MoodModal } from './MoodModal'
 export { default as MoodTracker } from './MoodTracker'
 export { default as RecentJournals } from './RecentJournals'

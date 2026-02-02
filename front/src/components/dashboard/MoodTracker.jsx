@@ -2,8 +2,20 @@
  * ТРЕКЕР НАСТРОЕНИЯ - Сводка эмоций за неделю с графиком
  * Показывает процент позитивных эмоций и визуализацию
  */
+import { format, parseISO } from 'date-fns'
+import { ru } from 'date-fns/locale'
 import { Plus } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import {
+	Area,
+	AreaChart,
+	CartesianGrid,
+	ReferenceLine,
+	ResponsiveContainer,
+	Tooltip,
+	XAxis,
+	YAxis,
+} from 'recharts'
 import MoodModal from './MoodModal'
 
 const MoodTracker = ({ emotions = [], onAddEmotion }) => {
@@ -90,6 +102,46 @@ const MoodTracker = ({ emotions = [], onAddEmotion }) => {
 		return { percentage, message, dayStats }
 	}, [emotions])
 
+	// Сортировка данных по дате для графика
+	const sortedData = useMemo(() => {
+		return [...emotions]
+			.sort(
+				(a, b) =>
+					new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+			)
+			.map(entry => ({
+				...entry,
+				formattedDate: format(parseISO(entry.created_at), 'd MMM', {
+					locale: ru,
+				}),
+			}))
+	}, [emotions])
+
+	const CustomTooltip = ({ active, payload, label }) => {
+		if (active && payload && payload.length) {
+			const data = payload[0].payload
+			return (
+				<div className='glass-card p-4 shadow-lg rounded-xl'>
+					<p className='text-sm font-medium text-white/60'>{label}</p>
+					<div className='flex items-center gap-2 mt-1'>
+						<span className='text-2xl font-bold text-white'>
+							{data.intensity}
+						</span>
+						<span className='text-xl'>
+							{data.intensity >= 8 ? '😊' : data.intensity >= 5 ? '😐' : '😔'}
+						</span>
+					</div>
+					{data.note && (
+						<p className='text-xs text-white/40 mt-2 max-w-[200px] truncate'>
+							{data.note}
+						</p>
+					)}
+				</div>
+			)
+		}
+		return null
+	}
+
 	const getBarColor = intensity => {
 		if (intensity >= 7) return 'bg-gradient-to-t from-[#10B981] to-[#34D399]'
 		if (intensity >= 4)
@@ -120,90 +172,55 @@ const MoodTracker = ({ emotions = [], onAddEmotion }) => {
 				<p className='text-white/60 text-sm mb-4'>{weeklyData.message}</p>
 
 				{/* График */}
-				<div className='relative h-24 mb-2'>
-					<div className='flex items-end justify-between h-full gap-2'>
-						{weeklyData.dayStats.map((day, index) => (
-							<div
-								key={index}
-								className='flex-1 relative group'
-								onMouseEnter={() => setHoveredDay(index)}
-								onMouseLeave={() => setHoveredDay(null)}
-							>
-								{/* Столбец */}
-								<div
-									className={`
-										w-full rounded-t-lg transition-all duration-300 relative
-										${getBarColor(day.avgIntensity)}
-										${day.isToday ? 'ring-2 ring-[#8b5cf6] ring-offset-2 ring-offset-[#1a1a2e]' : ''}
-										${day.count > 0 ? 'cursor-pointer' : ''}
-									`}
-									style={{
-										height: day.count > 0 ? `${day.avgIntensity * 10}%` : '4px',
-										minHeight: day.count > 0 ? '12px' : '4px',
-									}}
-								>
-									{/* Количество записей */}
-									{day.count > 0 && (
-										<div className='absolute inset-0 flex items-center justify-center'>
-											<span className='text-white text-xs font-medium'>
-												{day.count}
-											</span>
-										</div>
-									)}
-								</div>
-
-								{/* Tooltip с эмодзи */}
-								{hoveredDay === index && day.count > 0 && (
-									<div className='absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 z-10'>
-										<div className='glass-card p-3 text-xs whitespace-nowrap'>
-											<div className='flex items-center gap-2 mb-2'>
-												<span className='text-2xl'>
-													{getEmoji(day.avgIntensity)}
-												</span>
-												<div>
-													<div className='text-white font-medium'>
-														{day.day} {day.date}
-													</div>
-													<div className='text-white/60'>
-														{getEmotionLabel(day.avgIntensity)}
-													</div>
-												</div>
-											</div>
-											<div className='text-white/60 border-t border-white/10 pt-2'>
-												Оценка: {day.avgIntensity.toFixed(1)}/10
-											</div>
-											<div className='text-white/60'>Записей: {day.count}</div>
-											{day.emotions.length > 0 && day.emotions[0].note && (
-												<div className='text-white/50 text-xs mt-1 max-w-[200px] truncate'>
-													"{day.emotions[0].note}"
-												</div>
-											)}
-										</div>
-									</div>
-								)}
-							</div>
-						))}
-					</div>
-				</div>
-
-				{/* Подписи дней */}
-				<div className='flex justify-between items-center'>
-					{weeklyData.dayStats.map((day, index) => (
-						<div
-							key={index}
-							className={`flex-1 text-center text-xs ${
-								day.isToday ? 'text-[#8b5cf6] font-medium' : 'text-white/40'
-							}`}
-						>
-							{day.day}
-						</div>
-					))}
-				</div>
-
-				<div className='flex justify-between items-center text-xs mt-4'>
-					<span className='text-white/40'>😢 Плохо</span>
-					<span className='text-white/40'>😊 Отлично</span>
-				</div>
+				<ResponsiveContainer width='100%' height={200}>
+					<AreaChart
+						data={sortedData}
+						margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+					>
+						<defs>
+							<linearGradient id='colorScore' x1='0' y1='0' x2='0' y2='1'>
+								<stop offset='5%' stopColor='#8b5cf6' stopOpacity={0.4} />
+								<stop offset='95%' stopColor='#8b5cf6' stopOpacity={0} />
+							</linearGradient>
+						</defs>
+						<CartesianGrid
+							strokeDasharray='3 3'
+							vertical={false}
+							stroke='rgba(255, 255, 255, 0.1)'
+						/>
+						<XAxis
+							dataKey='formattedDate'
+							axisLine={false}
+							tickLine={false}
+							tick={{ fill: 'rgba(255, 255, 255, 0.4)', fontSize: 12 }}
+							dy={10}
+						/>
+						<YAxis
+							domain={[0, 10]}
+							axisLine={false}
+							tickLine={false}
+							tick={{ fill: 'rgba(255, 255, 255, 0.4)', fontSize: 12 }}
+						/>
+						<Tooltip
+							content={<CustomTooltip />}
+							cursor={{ stroke: '#8b5cf6', strokeWidth: 2 }}
+						/>
+						<ReferenceLine
+							y={5}
+							stroke='rgba(255, 255, 255, 0.1)'
+							strokeDasharray='3 3'
+						/>
+						<Area
+							type='monotone'
+							dataKey='intensity'
+							stroke='#8b5cf6'
+							strokeWidth={3}
+							fillOpacity={1}
+							fill='url(#colorScore)'
+							activeDot={{ r: 6, strokeWidth: 0, fill: '#7C3AED' }}
+						/>
+					</AreaChart>
+				</ResponsiveContainer>
 			</div>
 
 			<MoodModal
