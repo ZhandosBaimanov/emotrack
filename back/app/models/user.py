@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Enum as SQLEnum
+from sqlalchemy import Column, Integer, String, ForeignKey, Enum as SQLEnum, JSON
 from sqlalchemy.orm import relationship
 import enum
 
@@ -18,6 +18,14 @@ class User(Base):
     last_name = Column(String, index=True)
     email = Column(String, unique=True, index=True)
     hashed_password = Column(String)
+    
+    # Дополнительные поля профиля
+    phone = Column(String, nullable=True)
+    avatar_url = Column(String, nullable=True)
+    social_links = Column(JSON, nullable=True)
+    notification_settings = Column(JSON, default={})
+    language = Column(String, default="Русский")
+    currency = Column(String, default="RUB")
     
     # Роль пользователя
     role = Column(SQLEnum(UserRole), default=UserRole.USER)

@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr, field_serializer
 from enum import Enum
+from typing import Optional, Dict, Any
 
 
 class UserRole(str, Enum):
@@ -16,6 +17,17 @@ class UserCreate(BaseModel):
     link_code: str | None = None  # Код психолога для привязки (только для пациентов)
 
 
+class UserUpdate(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[EmailStr] = None
+    social_links: Optional[Dict[str, Any]] = None
+    notification_settings: Optional[Dict[str, Any]] = None
+    language: Optional[str] = None
+    currency: Optional[str] = None
+
+
 class UserOut(BaseModel):
     id: int
     first_name: str
@@ -23,6 +35,14 @@ class UserOut(BaseModel):
     email: EmailStr
     role: str  # Изменено на str для правильной сериализации
     psychologist_code: str | None = None  # Показываем только для психологов
+    
+    # Новые поля
+    phone: str | None = None
+    avatar_url: str | None = None
+    social_links: Dict[str, Any] | None = None
+    notification_settings: Dict[str, Any] | None = None
+    language: str | None = "Русский"
+    currency: str | None = "RUB"
 
     @field_serializer('role')
     def serialize_role(self, role, _info):
@@ -44,3 +64,14 @@ class PatientOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class PasswordChange(BaseModel):
+    """Схема для смены пароля"""
+    current_password: str
+    new_password: str
+
+
+class Toggle2FA(BaseModel):
+    """Схема для включения/выключения 2FA"""
+    enabled: bool
