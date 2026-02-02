@@ -121,26 +121,34 @@ export const emotionsAPI = {
 // API функции для ресурсов
 export const resourcesAPI = {
 	// Загрузить ресурс (для психолога)
-	uploadResource: formData => api.post('/api/resources', formData),
+	uploadResource: (formData, onUploadProgress) => 
+        api.post('/resources/', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            onUploadProgress
+        }),
 
 	// Получить мои ресурсы (для психолога)
-	getMyResources: () => api.get('/api/resources/psychologist'),
+	getMyResources: () => api.get('/resources/psychologist'),
 
 	// Получить ресурсы для пациента
-	getPatientResources: () => api.get('/api/resources/patient'),
+	getPatientResources: () => api.get('/resources/patient'),
 
 	// Удалить ресурс (для психолога)
-	deleteResource: id => api.delete(`/api/resources/${id}`),
+	deleteResource: id => api.delete(`/resources/${id}`),
+
+    // Скачать ресурс
+    downloadResource: id => api.get(`/resources/${id}/download`, { responseType: 'blob' }),
 
 	// Назначить ресурс пациенту (для психолога)
 	assignToPatient: (resourceId, patientId) =>
-		api.post(`/api/resources/${resourceId}/assign`, { patientId }),
+		api.post(`/resources/${resourceId}/assign`, { patientId }),
 
 	// Отметить ресурс как прочитанный (для пациента)
-	markAsRead: id => api.patch(`/api/resources/${id}/read`),
+	markAsRead: id => api.patch(`/resources/${id}/read`),
+}
 
-	// Получить список пациентов (для назначения ресурсов)
-	getMyPatients: () => api.get('/users/my-patients'),
+export const psychologistAPI = {
+    getPatients: (params) => api.get('/psychologist/patients', { params }),
 }
 
 // API функции для чатов/сообщений
