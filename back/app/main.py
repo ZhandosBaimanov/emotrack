@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -6,11 +5,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
+from app.middleware.logging import LoggingMiddleware, setup_logging
+from app.middleware.rate_limit import RateLimitMiddleware
 from app.database import engine
 from app.models import User, Emotion, Message, Session, PsychologistAvailability, Resource  # noqa: F401 - нужно для создания таблиц
 from app.database import Base
 from app.routers import auth, users, emotions, messages, sessions, availability, resources, psychologist, notifications
 from app.init_db import init_db
+
+# Настройка логирования
+setup_logging()
 
 # Создаем таблицы
 Base.metadata.create_all(bind=engine)
@@ -20,6 +24,9 @@ init_db()
 
 app = FastAPI(title="Emotrack API")
 
+# Logging middleware (добавляем первой)
+app.add_middleware(LoggingMiddleware)
+
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -28,6 +35,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Rate Limiting middleware
+app.add_middleware(RateLimitMiddleware)
 
 # Создаём директорию для загрузок
 UPLOAD_DIR = Path("uploads")
@@ -62,3 +72,7 @@ else:
     @app.get("/")
     def home():
         return {"status": "API is running", "project": "Emotrack"}
+    
+    @app.get("/health")
+    def health():
+        return {"status": "healthy"}

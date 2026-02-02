@@ -31,11 +31,54 @@ const Chats = () => {
 	const [messages, setMessages] = useState([])
 	const [newMessage, setNewMessage] = useState('')
 	const [sending, setSending] = useState(false)
-	const [typingUsers, setTypingUsers] = useState([]) // Track who is typing
-	const [onlineUsers, setOnlineUsers] = useState([]) // Track online users
+	const [typingUsers, setTypingUsers] = useState([])
 	const [currentFile, setCurrentFile] = useState(null)
 	const [uploadingFile, setUploadingFile] = useState(false)
-	const ws = useRef(null) // WebSocket connection
+
+	// WebSocket хук с heartbeat
+	const {
+		isConnected,
+		onlineUsers,
+		sendMessage,
+		disconnect: disconnectWS,
+	} = useWebSocket(user?.id, {
+		onMessage: useCallback(
+			data => {
+				switch (data.type) {
+					case 'message':
+						setMessages(prev => [...prev, data.message])
+						break
+					case 'typing':
+						if (data.user_id !== user?.id) {
+							setTypingUsers(prev => [...prev, data.user_id])
+							setTimeout(() => {
+								setTypingUsers(prev => prev.filter(id => id !== data.user_id))
+							}, 3000)
+						}
+						break
+					case 'read_receipt':
+						setMessages(prev =>
+							prev.map(msg =>
+								msg.id === data.message_id ? { ...msg, is_read: true } : msg,
+							),
+						)
+						break
+					default:
+						break
+				}
+			},
+			[user?.id],
+		),
+		onConnect: useCallback(() => {
+			console.log('WebSocket connected')
+		}, []),
+		onDisconnect: useCallback(() => {
+			console.log('WebSocket disconnected')
+		}, []),
+		onError: useCallback(error => {
+			console.error('WebSocket error:', error)
+		}, []),
+	})
 
 	useEffect(() => {
 		const initializeChat = async () => {

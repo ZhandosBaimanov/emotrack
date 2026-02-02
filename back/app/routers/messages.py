@@ -1,13 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException, status, WebSocket, WebSocketDisconnect, UploadFile, File, Form
 from sqlalchemy.orm import Session
-from typing import List
+from typing import Dict, List
 import json
+import asyncio
+import logging
 
 from app.models import User, UserRole, Message
 from app.schemas import PatientOut, UserOut, MessageCreate, MessageOut
 from app.dependencies import get_db, get_current_user
 from app.crud import message as message_crud
 from app.utils.files import save_upload_file
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/messages",
@@ -17,36 +21,105 @@ router = APIRouter(
 
 # WebSocket manager для управления соединениями
 class ConnectionManager:
-    def __init__(self):
-        self.active_connections: dict[int, WebSocket] = {}
-
+    """Улучшенный менеджер соединений с поддержкой heartbeats."""
+    
+    def __init__(self, heartbeat_interval: int = 30):
+        self.active_connections: Dict[int, WebSocket] = {}
+        self.last_activity: Dict[int, float] = {}
+        self.heartbeat_interval = heartbeat_interval
+        self._heartbeat_task = None
+    
+    async def start_heartbeat(self):
+        """Запустить background задачу для отправки heartbeats."""
+        if self._heartbeat_task is None or self._heartbeat_task.done():
+            self._heartbeat_task = asyncio.create_task(self._heartbeat_loop())
+    
+    async def _heartbeat_loop(self):
+        """Периодическая отправка ping всем активным соединениям."""
+        while True:
+            await asyncio.sleep(self.heartbeat_interval)
+            now = asyncio.get_event_loop().time()
+            
+            # Проверяем и отправляем heartbeat
+            disconnected = []
+            for user_id in list(self.active_connections.keys()):
+                try:
+                    # Проверяем время последней активности
+                    last_active = self.last_activity.get(user_id, now)
+                    if now - last_active > self.heartbeat_interval * 2:
+                        # Соеждение неактивно более 2 интервалов
+                        disconnected.append(user_id)
+                        continue
+                    
+                    # Отправляем ping
+                    ws = self.active_connections[user_id]
+                    await ws.send_json({"type": "ping", "timestamp": now})
+                except Exception as e:
+                    logger.warning(f"Heartbeat failed for user {user_id}: {e}")
+                    disconnected.append(user_id)
+            
+            # Отключаем неактивные соединения
+            for user_id in disconnected:
+                self.disconnect(user_id)
+    
     async def connect(self, websocket: WebSocket, user_id: int):
+        """Подключение нового пользователя."""
         await websocket.accept()
         self.active_connections[user_id] = websocket
-
+        self.last_activity[user_id] = asyncio.get_event_loop().time()
+        
+        # Запускаем heartbeat если ещё не запущен
+        await self.start_heartbeat()
+        
+        logger.info(f"User {user_id} connected via WebSocket")
+    
     def disconnect(self, user_id: int):
+        """Отключение пользователя."""
         if user_id in self.active_connections:
             del self.active_connections[user_id]
-
-    async def send_personal_message(self, message: dict, user_id: int):
+        if user_id in self.last_activity:
+            del self.last_activity[user_id]
+        logger.info(f"User {user_id} disconnected from WebSocket")
+    
+    def update_activity(self, user_id: int):
+        """Обновить время последней активности."""
+        self.last_activity[user_id] = asyncio.get_event_loop().time()
+    
+    async def send_personal_message(self, message: dict, user_id: int) -> bool:
+        """Отправить сообщение пользователю. Возвращает True если успешно."""
         if user_id in self.active_connections:
-            await self.active_connections[user_id].send_json(message)
-
+            try:
+                await self.active_connections[user_id].send_json(message)
+                self.update_activity(user_id)
+                return True
+            except Exception as e:
+                logger.error(f"Failed to send message to user {user_id}: {e}")
+                self.disconnect(user_id)
+        return False
+    
     def get_online_users(self) -> List[int]:
+        """Получить список онлайн пользователей."""
         return list(self.active_connections.keys())
+    
+    def is_online(self, user_id: int) -> bool:
+        """Проверить онлайн ли пользователь."""
+        return user_id in self.active_connections
 
 
-manager = ConnectionManager()
+manager = ConnectionManager(heartbeat_interval=30)
 
 
 @router.websocket("/ws/{user_id}")
 async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = Depends(get_db)):
     await manager.connect(websocket, user_id)
+    
+    # Проверка авторизации (опционально)
     try:
         # Отправляем список онлайн пользователей
         await websocket.send_json({
             "type": "online_status",
-            "online_users": manager.get_online_users()
+            "online_users": manager.get_online_users(),
+            "heartbeat_interval": manager.heartbeat_interval
         })
         
         # Уведомляем других о новом онлайн пользователе
@@ -58,59 +131,81 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = D
                 }, uid)
 
         while True:
-            data = await websocket.receive_text()
-            message_data = json.loads(data)
-            
-            msg_type = message_data.get("type")
-            
-            if msg_type == "message":
-                # Создаем сообщение в БД
-                message = MessageCreate(
-                    content=message_data["content"],
-                    recipient_id=message_data["recipient_id"]
+            try:
+                # Таймаут для receive - позволяет обрабатывать heartbeats
+                data = await asyncio.wait_for(
+                    websocket.receive_text(),
+                    timeout=manager.heartbeat_interval * 2
                 )
-                db_message = message_crud.create_message(db, message, user_id)
+                message_data = json.loads(data)
                 
-                # Отправляем получателю
-                await manager.send_personal_message({
-                    "type": "message",
-                    "message": {
-                        "id": db_message.id,
-                        "content": db_message.content,
-                        "sender_id": db_message.sender_id,
-                        "recipient_id": db_message.recipient_id,
-                        "timestamp": db_message.timestamp.isoformat(),
-                        "is_read": db_message.is_read
-                    }
-                }, message_data["recipient_id"])
+                msg_type = message_data.get("type")
                 
-                # Отправляем отправителю подтверждение
-                await manager.send_personal_message({
-                    "type": "message",
-                    "message": {
-                        "id": db_message.id,
-                        "content": db_message.content,
-                        "sender_id": db_message.sender_id,
-                        "recipient_id": db_message.recipient_id,
-                        "timestamp": db_message.timestamp.isoformat(),
-                        "is_read": db_message.is_read
-                    }
-                }, user_id)
+                # Обновляем активность
+                manager.update_activity(user_id)
                 
-            elif msg_type == "typing":
-                # Уведомляем получателя о печати
-                await manager.send_personal_message({
-                    "type": "typing",
-                    "user_id": user_id
-                }, message_data["recipient_id"])
-                
-            elif msg_type == "mark_read":
-                # Отмечаем сообщения как прочитанные
-                message_crud.mark_messages_as_read(
-                    db, 
-                    message_data["sender_id"], 
-                    user_id
-                )
+                if msg_type == "ping":
+                    # Отвечаем на ping
+                    await websocket.send_json({
+                        "type": "pong",
+                        "timestamp": asyncio.get_event_loop().time()
+                    })
+                    
+                elif msg_type == "message":
+                    # Создаем сообщение в БД
+                    message = MessageCreate(
+                        content=message_data["content"],
+                        recipient_id=message_data["recipient_id"]
+                    )
+                    db_message = message_crud.create_message(db, message, user_id)
+                    
+                    # Отправляем получателю
+                    await manager.send_personal_message({
+                        "type": "message",
+                        "message": {
+                            "id": db_message.id,
+                            "content": db_message.content,
+                            "sender_id": db_message.sender_id,
+                            "recipient_id": db_message.recipient_id,
+                            "timestamp": db_message.timestamp.isoformat(),
+                            "is_read": db_message.is_read
+                        }
+                    }, message_data["recipient_id"])
+                    
+                    # Отправляем отправителю подтверждение
+                    await manager.send_personal_message({
+                        "type": "message",
+                        "message": {
+                            "id": db_message.id,
+                            "content": db_message.content,
+                            "sender_id": db_message.sender_id,
+                            "recipient_id": db_message.recipient_id,
+                            "timestamp": db_message.timestamp.isoformat(),
+                            "is_read": db_message.is_read
+                        }
+                    }, user_id)
+                    
+                elif msg_type == "typing":
+                    # Уведомляем получателя о печати
+                    await manager.send_personal_message({
+                        "type": "typing",
+                        "user_id": user_id
+                    }, message_data["recipient_id"])
+                    
+                elif msg_type == "mark_read":
+                    # Отмечаем сообщения как прочитанные
+                    message_crud.mark_messages_as_read(
+                        db, 
+                        message_data["sender_id"], 
+                        user_id
+                    )
+                    
+            except asyncio.TimeoutError:
+                # Таймаут - отправляем ping
+                try:
+                    await websocket.send_json({"type": "ping", "timestamp": asyncio.get_event_loop().time()})
+                except:
+                    break
                 
     except WebSocketDisconnect:
         manager.disconnect(user_id)
@@ -120,6 +215,9 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = D
                 "type": "online_status",
                 "online_users": manager.get_online_users()
             }, uid)
+    except Exception as e:
+        logger.error(f"WebSocket error for user {user_id}: {e}")
+        manager.disconnect(user_id)
 
 
 @router.post("/", response_model=MessageOut)
