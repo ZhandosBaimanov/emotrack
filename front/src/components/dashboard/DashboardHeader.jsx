@@ -1,10 +1,10 @@
 import {
 	Bell,
+	Calendar,
 	FolderOpen,
 	Home,
 	LogOut,
 	MessageCircle,
-	MessageSquare,
 	Settings,
 	TrendingUp,
 	User,
@@ -28,6 +28,7 @@ const DashboardHeader = ({ activeTab = 'home' }) => {
 					{ id: 'home', label: 'Главная', icon: Home },
 					{ id: 'analytics', label: 'Аналитика', icon: TrendingUp },
 					{ id: 'journal', label: 'Журнал', icon: MessageSquare },
+					{ id: 'sessions', label: 'Записи', icon: Calendar },
 					{ id: 'resources', label: 'Ресурсы', icon: FolderOpen },
 					{ id: 'chat', label: 'Чат', icon: MessageCircle },
 				]
@@ -38,7 +39,7 @@ const DashboardHeader = ({ activeTab = 'home' }) => {
 				]
 
 	return (
-		<header className='glass-card px-6 py-4 mb-6 flex items-center justify-between'>
+		<header className='glass-card px-6 py-4 mb-6 flex items-center justify-between min-h-[80px]'>
 			<div className='flex items-center gap-8'>
 				{/* Logo */}
 				<div className='flex items-center gap-2'>
@@ -65,6 +66,8 @@ const DashboardHeader = ({ activeTab = 'home' }) => {
 											navigate('/psychologist/analytics')
 										else if (tab.id === 'journal')
 											navigate('/psychologist/journal')
+										else if (tab.id === 'sessions')
+											navigate('/psychologist/sessions')
 										else if (tab.id === 'resources')
 											navigate('/psychologist/resources')
 										else if (tab.id === 'chat') navigate('/psychologist/chats')
@@ -75,7 +78,7 @@ const DashboardHeader = ({ activeTab = 'home' }) => {
 										else if (tab.id === 'chat') navigate('/dashboard/chats')
 									}
 								}}
-								className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 flex items-center gap-2 ${
+								className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 flex items-center gap-2 whitespace-nowrap ${
 									activeTab === tab.id
 										? 'bg-[#8b5cf6]/30 text-white'
 										: 'text-white/60 hover:text-white hover:bg-white/10'

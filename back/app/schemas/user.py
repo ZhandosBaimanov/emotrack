@@ -1,6 +1,8 @@
 from pydantic import BaseModel, EmailStr, field_serializer
 from enum import Enum
 from typing import Optional, Dict, Any
+from datetime import datetime
+from typing import Optional
 
 
 class UserRole(str, Enum):
@@ -75,3 +77,8 @@ class PasswordChange(BaseModel):
 class Toggle2FA(BaseModel):
     """Схема для включения/выключения 2FA"""
     enabled: bool
+class PatientEnhancedOut(PatientOut):
+    last_seen: Optional[datetime] = None
+    unread_messages_count: int = 0
+    new_entries_count: int = 0
+    has_new_activity: bool = False

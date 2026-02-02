@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { format } from 'date-fns'
 
 // Базовый URL API
 const API_BASE_URL = '/api'
@@ -121,26 +122,34 @@ export const emotionsAPI = {
 // API функции для ресурсов
 export const resourcesAPI = {
 	// Загрузить ресурс (для психолога)
-	uploadResource: formData => api.post('/api/resources', formData),
+	uploadResource: (formData, onUploadProgress) => 
+        api.post('/resources/', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            onUploadProgress
+        }),
 
 	// Получить мои ресурсы (для психолога)
-	getMyResources: () => api.get('/api/resources/psychologist'),
+	getMyResources: () => api.get('/resources/psychologist'),
 
 	// Получить ресурсы для пациента
-	getPatientResources: () => api.get('/api/resources/patient'),
+	getPatientResources: () => api.get('/resources/patient'),
 
 	// Удалить ресурс (для психолога)
-	deleteResource: id => api.delete(`/api/resources/${id}`),
+	deleteResource: id => api.delete(`/resources/${id}`),
+
+    // Скачать ресурс
+    downloadResource: id => api.get(`/resources/${id}/download`, { responseType: 'blob' }),
 
 	// Назначить ресурс пациенту (для психолога)
 	assignToPatient: (resourceId, patientId) =>
-		api.post(`/api/resources/${resourceId}/assign`, { patientId }),
+		api.post(`/resources/${resourceId}/assign`, { patientId }),
 
 	// Отметить ресурс как прочитанный (для пациента)
-	markAsRead: id => api.patch(`/api/resources/${id}/read`),
+	markAsRead: id => api.patch(`/resources/${id}/read`),
+}
 
-	// Получить список пациентов (для назначения ресурсов)
-	getMyPatients: () => api.get('/users/my-patients'),
+export const psychologistAPI = {
+    getPatients: (params) => api.get('/psychologist/patients', { params }),
 }
 
 // API функции для чатов/сообщений
@@ -180,6 +189,76 @@ export const messagesAPI = {
 	// Получить непрочитанные сообщения
 	getUnreadCount: async () => {
 		const response = await api.get('/messages/unread-count')
+		return response.data
+	},
+}
+
+// API функции для сеансов
+export const sessionsAPI = {
+	// Отправить запрос на сеанс
+	requestSession: async (psychologistId, date, time, notes) => {
+		const response = await api.post('/sessions/request', {
+			psychologist_id: psychologistId,
+			scheduled_date: format(date, 'yyyy-MM-dd'),
+			scheduled_time: time,
+			notes,
+		})
+		return response.data
+	},
+
+	// Получить мои сеансы
+	getMySessions: async () => {
+		const response = await api.get('/sessions/my')
+		return response.data
+	},
+
+	// Получить доступные слоты психолога
+	getSlots: async (psychologistId, date) => {
+		const response = await api.get(
+			`/sessions/slots/${psychologistId}?date=${date}`,
+		)
+		return response.data
+	},
+
+	// Обновить статус сеанса (для психолога или отмены пациентом)
+	updateStatus: async (sessionId, status, reason) => {
+		const response = await api.patch(`/sessions/${sessionId}/status`, {
+			status,
+			notes: reason,
+		})
+		return response.data
+	},
+}
+
+export const availabilityAPI = {
+	// Получить доступные времена психолога на дату
+	getAvailability: async (psychologistId, date) => {
+		const response = await api.get(`/availability/${psychologistId}/${date}`)
+		return response.data
+	},
+
+	// Добавить доступное время
+	addAvailability: async (availableDate, availableTime) => {
+		const response = await api.post('/availability/', {
+			available_date: availableDate,
+			available_time: availableTime,
+			is_available: true,
+		})
+		return response.data
+	},
+
+	// Массовое добавление доступных времён
+	bulkAddAvailability: async (availableDate, times) => {
+		const response = await api.post('/availability/bulk', {
+			available_date: availableDate,
+			times: times.map(t => (t.includes(':') ? t : `${t}:00`)),
+		})
+		return response.data
+	},
+
+	// Удалить доступное время
+	deleteAvailability: async availabilityId => {
+		const response = await api.delete(`/availability/${availabilityId}`)
 		return response.data
 	},
 }

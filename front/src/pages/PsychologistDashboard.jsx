@@ -13,6 +13,10 @@ import {
 	TrendingUp,
 	User,
 	Users,
+    Search,
+    Filter,
+    Clock,
+    Circle
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -26,7 +30,7 @@ import {
 	XAxis,
 	YAxis,
 } from 'recharts'
-import { emotionsAPI } from '../api/api'
+import { emotionsAPI, psychologistAPI } from '../api/api'
 import { DashboardHeader } from '../components/dashboard'
 import { useAuth } from '../context/AuthContext'
 
@@ -57,19 +61,38 @@ const PsychologistDashboard = () => {
 	const [loadingEmotions, setLoadingEmotions] = useState(false)
 	const [copied, setCopied] = useState(false)
 
+    // Filters
+    const [search, setSearch] = useState('')
+    const [filterStatus, setFilterStatus] = useState('all') // all, new_activity
+    const [sortBy, setSortBy] = useState('last_seen') // name, last_seen, entries
+
 	useEffect(() => {
 		const fetchPatients = async () => {
 			try {
-				const data = await emotionsAPI.getMyPatients()
-				setPatients(data)
+				setLoading(true)
+                // Use enhanced API if possible, fallback logic could be here but we assume backend is ready
+				const data = await psychologistAPI.getPatients({
+                    search,
+                    sort: sortBy,
+                    filter_status: filterStatus === 'all' ? null : filterStatus
+                })
+                // Handle potential array vs response object
+				setPatients(Array.isArray(data.data) ? data.data : data)
 			} catch (err) {
 				console.error('Ошибка загрузки пациентов:', err)
+                // Fallback to old API if new one fails (e.g. 404)
+                try {
+                    const data = await emotionsAPI.getMyPatients()
+                    setPatients(data)
+                } catch (e) { console.error(e) }
 			} finally {
 				setLoading(false)
 			}
 		}
-		fetchPatients()
-	}, [])
+        
+        const timeoutId = setTimeout(() => fetchPatients(), 300)
+		return () => clearTimeout(timeoutId)
+	}, [search, sortBy, filterStatus])
 
 	useEffect(() => {
 		if (selectedPatient) {
@@ -97,20 +120,13 @@ const PsychologistDashboard = () => {
 	}
 
 	const formatDate = dateString => {
+        if (!dateString) return ''
 		const date = new Date(dateString)
 		return date.toLocaleDateString('ru-RU', {
 			day: 'numeric',
 			month: 'short',
 			hour: '2-digit',
 			minute: '2-digit',
-		})
-	}
-
-	const formatDateShort = dateString => {
-		const date = new Date(dateString)
-		return date.toLocaleDateString('ru-RU', {
-			day: 'numeric',
-			month: 'short',
 		})
 	}
 
@@ -382,18 +398,51 @@ const PsychologistDashboard = () => {
 				)}
 
 				<div className='grid md:grid-cols-12 gap-6'>
-					<div className='md:col-span-4 glass-card p-6'>
+					<div className='md:col-span-4 glass-card p-6 flex flex-col h-[calc(100vh-200px)]'>
 						<h2 className='text-lg font-semibold text-white mb-4 flex items-center gap-2'>
 							<Users className='w-5 h-5 text-[#8b5cf6]' />
 							Мои пациенты
 						</h2>
 
+                        {/* Search and Filters */}
+                        <div className="mb-4 space-y-3">
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                                <input 
+                                    type="text"
+                                    value={search}
+                                    onChange={e => setSearch(e.target.value)}
+                                    placeholder="Поиск пациентов..."
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2 text-white text-sm focus:outline-none focus:border-[#8b5cf6] transition-colors"
+                                />
+                            </div>
+                            <div className="flex gap-2">
+                                <select 
+                                    value={filterStatus}
+                                    onChange={e => setFilterStatus(e.target.value)}
+                                    className="flex-1 bg-white/5 border border-white/10 rounded-xl px-2 py-2 text-white text-xs focus:outline-none focus:border-[#8b5cf6]"
+                                >
+                                    <option value="all" className="bg-[#1a1a1a]">Все пациенты</option>
+                                    <option value="new_activity" className="bg-[#1a1a1a]">С активностью</option>
+                                </select>
+                                <select 
+                                    value={sortBy}
+                                    onChange={e => setSortBy(e.target.value)}
+                                    className="flex-1 bg-white/5 border border-white/10 rounded-xl px-2 py-2 text-white text-xs focus:outline-none focus:border-[#8b5cf6]"
+                                >
+                                    <option value="last_seen" className="bg-[#1a1a1a]">По визиту</option>
+                                    <option value="name" className="bg-[#1a1a1a]">По имени</option>
+                                    <option value="entries" className="bg-[#1a1a1a]">По записям</option>
+                                </select>
+                            </div>
+                        </div>
+
 						{loading ? (
-							<div className='flex items-center justify-center py-8'>
+							<div className='flex items-center justify-center py-8 flex-1'>
 								<Loader2 className='w-8 h-8 text-[#8b5cf6] animate-spin' />
 							</div>
 						) : patients.length === 0 ? (
-							<div className='text-center py-8'>
+							<div className='text-center py-8 flex-1'>
 								<Users className='w-12 h-12 text-white/20 mx-auto mb-3' />
 								<p className='text-white/50'>Пока нет пациентов</p>
 								<p className='text-white/30 text-sm mt-2'>
@@ -401,7 +450,7 @@ const PsychologistDashboard = () => {
 								</p>
 							</div>
 						) : (
-							<div className='space-y-2'>
+							<div className='space-y-2 overflow-y-auto pr-2 custom-scrollbar flex-1'>
 								{patients.map(patient => (
 									<button
 										key={patient.id}
@@ -412,22 +461,50 @@ const PsychologistDashboard = () => {
 												: 'bg-white/5 border-white/10 hover:bg-white/10'
 										}`}
 									>
-										<div className='flex items-center gap-3'>
-											<div className='w-10 h-10 rounded-full bg-gradient-to-br from-[#8b5cf6] to-[#6d28d9] flex items-center justify-center'>
-												<User className='w-5 h-5 text-white' />
-											</div>
-											<div className='text-left'>
-												<p className='text-white font-medium'>
+										<div className='flex items-center gap-3 overflow-hidden'>
+                                            <div className="relative">
+                                                <div className='w-10 h-10 rounded-full bg-gradient-to-br from-[#8b5cf6] to-[#6d28d9] flex items-center justify-center shrink-0'>
+                                                    <User className='w-5 h-5 text-white' />
+                                                </div>
+                                                {patient.has_new_activity && (
+                                                    <span className="absolute top-0 right-0 w-3 h-3 bg-[#22c55e] border-2 border-[#1a1a1a] rounded-full"></span>
+                                                )}
+                                            </div>
+											<div className='text-left min-w-0'>
+												<p className='text-white font-medium truncate'>
 													{patient.first_name} {patient.last_name}
 												</p>
-												<p className='text-white/40 text-sm flex items-center gap-1'>
-													<Mail className='w-3 h-3' />
-													{patient.email}
-												</p>
+												<div className="flex items-center gap-2 text-white/40 text-xs">
+                                                    {patient.last_seen ? (
+                                                        <span className="flex items-center gap-1">
+                                                            <Clock className="w-3 h-3" />
+                                                            {formatDate(patient.last_seen)}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="flex items-center gap-1">
+                                                            <Mail className="w-3 h-3" />
+                                                            {patient.email}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {(patient.unread_messages_count > 0 || patient.new_entries_count > 0) && (
+                                                    <div className="flex gap-2 mt-1">
+                                                        {patient.unread_messages_count > 0 && (
+                                                            <span className="text-[10px] bg-[#8b5cf6]/20 text-[#c4a7e7] px-1.5 py-0.5 rounded">
+                                                                {patient.unread_messages_count} сообщ.
+                                                            </span>
+                                                        )}
+                                                        {patient.new_entries_count > 0 && (
+                                                            <span className="text-[10px] bg-[#22c55e]/20 text-[#22c55e] px-1.5 py-0.5 rounded">
+                                                                {patient.new_entries_count} запис.
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                )}
 											</div>
 										</div>
 										<ChevronRight
-											className={`w-5 h-5 transition-transform ${
+											className={`w-5 h-5 transition-transform shrink-0 ${
 												selectedPatient?.id === patient.id
 													? 'text-[#8b5cf6]'
 													: 'text-white/30'
@@ -506,7 +583,10 @@ const PsychologistDashboard = () => {
 										</button>
 
 										{/* Чат с пациентом */}
-										<button className='group bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#8b5cf6]/50 rounded-xl p-6 transition-all duration-300 flex flex-col items-center gap-3'>
+										<button 
+                                            onClick={() => navigate('/psychologist/chats', { state: { patientId: selectedPatient.id } })}
+                                            className='group bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#8b5cf6]/50 rounded-xl p-6 transition-all duration-300 flex flex-col items-center gap-3'
+                                        >
 											<div className='w-12 h-12 rounded-full bg-gradient-to-br from-[#8b5cf6]/30 to-[#6d28d9]/20 group-hover:from-[#8b5cf6]/40 group-hover:to-[#6d28d9]/30 flex items-center justify-center transition-all border border-[#8b5cf6]/30'>
 												<MessageSquare className='w-6 h-6 text-[#c4a7e7]' />
 											</div>
