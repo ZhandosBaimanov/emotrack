@@ -12,8 +12,8 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
 import { BackgroundGradientAnimation } from '../components/ui/background-gradient-animation'
+import { useAuth } from '../context/AuthContext'
 
 const Register = () => {
 	const navigate = useNavigate()

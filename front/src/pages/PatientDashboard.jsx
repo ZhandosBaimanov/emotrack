@@ -124,27 +124,27 @@ const PatientDashboard = () => {
 
 	return (
 		<div className='min-h-screen p-4 md:p-6 lg:p-8'>
-				<div className='max-w-7xl mx-auto'>
-					<DashboardHeader activeTab='home' />
+			<div className='max-w-7xl mx-auto'>
+				<DashboardHeader activeTab='home' />
 
-					<div className='grid grid-cols-1 lg:grid-cols-12 gap-6'>
-						<div className='lg:col-span-4 flex flex-col gap-6'>
-							<AIJournal />
-						</div>
+				<div className='grid grid-cols-1 lg:grid-cols-12 gap-6'>
+					<div className='lg:col-span-4 flex flex-col gap-6'>
+						<AIJournal />
+					</div>
 
-						<div className='lg:col-span-4 flex flex-col gap-6'>
-							<MoodTracker emotions={emotions} onAddEmotion={handleAddEmotion} />
-							<SessionCalendar sessions={sessions} />
-						</div>
+					<div className='lg:col-span-4 flex flex-col gap-6'>
+						<MoodTracker emotions={emotions} onAddEmotion={handleAddEmotion} />
+						<SessionCalendar sessions={sessions} />
+					</div>
 
-						<div className='lg:col-span-4 flex flex-col gap-6'>
-							<TherapistCard
-								psychologist={psychologist}
-								recommendedPsychologists={recommendedPsychologists}
-							/>
-						</div>
+					<div className='lg:col-span-4 flex flex-col gap-6'>
+						<TherapistCard
+							psychologist={psychologist}
+							recommendedPsychologists={recommendedPsychologists}
+						/>
 					</div>
 				</div>
+			</div>
 		</div>
 	)
 }
