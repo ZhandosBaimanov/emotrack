@@ -10,9 +10,6 @@ from app.database import engine
 from app.models import User, Emotion, Message, Session, PsychologistAvailability, Resource  # noqa: F401 - нужно для создания таблиц
 from app.database import Base
 from app.routers import auth, users, emotions, messages, sessions, availability, resources, psychologist
-from app.models import User, Emotion, Message, Resource  # noqa: F401 - нужно для создания таблиц
-from app.database import Base
-from app.routers import auth, users, emotions, messages, resources, psychologist
 from app.init_db import init_db
 
 # Создаем таблицы

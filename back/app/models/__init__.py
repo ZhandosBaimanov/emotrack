@@ -6,6 +6,3 @@ from app.models.availability import PsychologistAvailability
 from app.models.resource import Resource
 
 __all__ = ["User", "UserRole", "Emotion", "Message", "Session", "SessionStatus", "PsychologistAvailability", "Resource"]
-from app.models.resource import Resource
-
-__all__ = ["User", "UserRole", "Emotion", "Message", "Resource"]
