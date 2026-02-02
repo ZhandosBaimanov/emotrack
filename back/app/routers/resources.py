@@ -16,9 +16,8 @@ router = APIRouter(
     tags=["Resources"]
 )
 
-# Use absolute path relative to backend root
-# back/app/routers/resources.py -> back/uploads/resources
-UPLOAD_DIR = Path(__file__).resolve().parent.parent.parent / "uploads" / "resources"
+# Use /app/uploads inside container (mounted as volume)
+UPLOAD_DIR = Path("/app/uploads/resources")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 @router.post("/", response_model=ResourceOut)
@@ -60,7 +59,7 @@ async def upload_resource(
     resource = Resource(
         title=title,
         description=description,
-        file_path=str(file_path),
+        file_path=safe_filename,  # Store only filename, not full path
         file_type=Path(file.filename).suffix.lower(),
         file_size=len(content),
         psychologist_id=current_user.id,
@@ -117,9 +116,14 @@ def download_resource(
         if not resource.is_public:
              raise HTTPException(status_code=403, detail="Resource is private")
              
+    # Construct full path from stored filename
+    file_path = UPLOAD_DIR / resource.file_path
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+    
     return FileResponse(
-        path=resource.file_path, 
-        filename=Path(resource.file_path).name,
+        path=str(file_path), 
+        filename=resource.file_path.split("_", 2)[-1] if "_" in resource.file_path else resource.file_path,
         media_type="application/octet-stream" # Force download
     )
 
@@ -138,8 +142,9 @@ def delete_resource(
         
     # Delete file
     try:
-        if os.path.exists(resource.file_path):
-            os.remove(resource.file_path)
+        file_path = UPLOAD_DIR / resource.file_path
+        if file_path.exists():
+            file_path.unlink()
     except OSError:
         pass 
         
