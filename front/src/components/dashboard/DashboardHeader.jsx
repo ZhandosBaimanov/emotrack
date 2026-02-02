@@ -22,19 +22,20 @@ const DashboardHeader = ({ activeTab = 'home' }) => {
 	}
 
 	// Define tabs based on user role
-	const tabs = user?.role === 'psychologist'
-		? [
-				{ id: 'home', label: 'Главная', icon: Home },
-				{ id: 'analytics', label: 'Аналитика', icon: TrendingUp },
-				{ id: 'journal', label: 'Журнал', icon: MessageSquare },
-				{ id: 'resources', label: 'Ресурсы', icon: FolderOpen },
-				{ id: 'chat', label: 'Чат', icon: MessageCircle },
-		  ]
-		: [
-				{ id: 'home', label: 'Главная', icon: Home },
-				{ id: 'resources', label: 'Ресурсы', icon: FolderOpen },
-				{ id: 'chat', label: 'Чат', icon: MessageCircle },
-		  ]
+	const tabs =
+		user?.role === 'psychologist'
+			? [
+					{ id: 'home', label: 'Главная', icon: Home },
+					{ id: 'analytics', label: 'Аналитика', icon: TrendingUp },
+					{ id: 'journal', label: 'Журнал', icon: MessageSquare },
+					{ id: 'resources', label: 'Ресурсы', icon: FolderOpen },
+					{ id: 'chat', label: 'Чат', icon: MessageCircle },
+				]
+			: [
+					{ id: 'home', label: 'Главная', icon: Home },
+					{ id: 'resources', label: 'Ресурсы', icon: FolderOpen },
+					{ id: 'chat', label: 'Чат', icon: MessageCircle },
+				]
 
 	return (
 		<header className='glass-card px-6 py-4 mb-6 flex items-center justify-between'>
@@ -60,13 +61,17 @@ const DashboardHeader = ({ activeTab = 'home' }) => {
 								onClick={() => {
 									if (user?.role === 'psychologist') {
 										if (tab.id === 'home') navigate('/psychologist')
-										else if (tab.id === 'analytics') navigate('/psychologist/analytics')
-										else if (tab.id === 'journal') navigate('/psychologist/journal')
-										else if (tab.id === 'resources') navigate('/psychologist/resources')
+										else if (tab.id === 'analytics')
+											navigate('/psychologist/analytics')
+										else if (tab.id === 'journal')
+											navigate('/psychologist/journal')
+										else if (tab.id === 'resources')
+											navigate('/psychologist/resources')
 										else if (tab.id === 'chat') navigate('/psychologist/chats')
 									} else {
 										if (tab.id === 'home') navigate('/dashboard')
-										else if (tab.id === 'resources') navigate('/dashboard/resources')
+										else if (tab.id === 'resources')
+											navigate('/dashboard/resources')
 										else if (tab.id === 'chat') navigate('/dashboard/chats')
 									}
 								}}
@@ -90,7 +95,11 @@ const DashboardHeader = ({ activeTab = 'home' }) => {
 					<Bell className='w-5 h-5' />
 				</button>
 
-				<button className='p-2 rounded-xl text-white/60 hover:text-white hover:bg-white/10 transition-all'>
+				<button
+					onClick={() => navigate('/settings')}
+					className='p-2 rounded-xl text-white/60 hover:text-white hover:bg-white/10 transition-all'
+					title='Настройки'
+				>
 					<Settings className='w-5 h-5' />
 				</button>
 
