@@ -29,6 +29,7 @@ import {
 import { emotionsAPI } from '../api/api'
 import { DashboardHeader } from '../components/dashboard'
 import { useAuth } from '../context/AuthContext'
+import { BackgroundGradientAnimation } from '../components/ui/background-gradient-animation'
 
 const emotionEmojis = {
 	'Очень плохо': '😢',
@@ -344,189 +345,201 @@ const PsychologistDashboard = () => {
 	}
 
 	return (
-		<div className='min-h-screen p-4 md:p-6 lg:p-8'>
-			<div className='max-w-7xl mx-auto'>
-				<DashboardHeader activeTab='home' />
+		<BackgroundGradientAnimation
+			gradientBackgroundStart='rgb(26, 26, 46)'
+			gradientBackgroundEnd='rgb(30, 64, 175)'
+			firstColor='109, 40, 217'
+			secondColor='139, 92, 246'
+			thirdColor='67, 56, 202'
+			fourthColor='30, 64, 175'
+			fifthColor='196, 167, 231'
+			pointerColor='139, 92, 246'
+			className='absolute inset-0 z-20 overflow-y-auto'
+		>
+			<div className='min-h-screen p-4 md:p-6 lg:p-8'>
+				<div className='max-w-7xl mx-auto'>
+					<DashboardHeader activeTab='home' />
 
-				{user?.psychologist_code && (
-					<div className='glass-card p-4 mb-6'>
-						<div className='flex flex-col md:flex-row items-start md:items-center justify-between gap-4'>
-							<div>
-								<p className='text-white/60 text-sm mb-1'>
-									Ваш уникальный код для пациентов:
-								</p>
-								<p className='text-2xl font-mono font-bold text-[#c4a7e7] tracking-wider'>
-									{user.psychologist_code}
-								</p>
-							</div>
-							<button
-								onClick={copyCode}
-								className={`glass-button flex items-center gap-2 px-4 py-2 ${
-									copied ? 'bg-[#22c55e]/20 border-[#22c55e]/30' : ''
-								}`}
-							>
-								{copied ? (
-									<>
-										<Check className='w-5 h-5 text-[#22c55e]' />
-										<span className='text-[#22c55e]'>Скопировано!</span>
-									</>
-								) : (
-									<>
-										<Copy className='w-5 h-5' />
-										<span>Скопировать</span>
-									</>
-								)}
-							</button>
-						</div>
-					</div>
-				)}
-
-				<div className='grid md:grid-cols-12 gap-6'>
-					<div className='md:col-span-4 glass-card p-6'>
-						<h2 className='text-lg font-semibold text-white mb-4 flex items-center gap-2'>
-							<Users className='w-5 h-5 text-[#8b5cf6]' />
-							Мои пациенты
-						</h2>
-
-						{loading ? (
-							<div className='flex items-center justify-center py-8'>
-								<Loader2 className='w-8 h-8 text-[#8b5cf6] animate-spin' />
-							</div>
-						) : patients.length === 0 ? (
-							<div className='text-center py-8'>
-								<Users className='w-12 h-12 text-white/20 mx-auto mb-3' />
-								<p className='text-white/50'>Пока нет пациентов</p>
-								<p className='text-white/30 text-sm mt-2'>
-									Поделитесь своим кодом, чтобы пациенты могли привязаться
-								</p>
-							</div>
-						) : (
-							<div className='space-y-2'>
-								{patients.map(patient => (
-									<button
-										key={patient.id}
-										onClick={() => setSelectedPatient(patient)}
-										className={`w-full p-4 rounded-xl border transition-all duration-300 flex items-center justify-between ${
-											selectedPatient?.id === patient.id
-												? 'bg-[#8b5cf6]/20 border-[#8b5cf6]/50'
-												: 'bg-white/5 border-white/10 hover:bg-white/10'
-										}`}
-									>
-										<div className='flex items-center gap-3'>
-											<div className='w-10 h-10 rounded-full bg-gradient-to-br from-[#8b5cf6] to-[#6d28d9] flex items-center justify-center'>
-												<User className='w-5 h-5 text-white' />
-											</div>
-											<div className='text-left'>
-												<p className='text-white font-medium'>
-													{patient.first_name} {patient.last_name}
-												</p>
-												<p className='text-white/40 text-sm flex items-center gap-1'>
-													<Mail className='w-3 h-3' />
-													{patient.email}
-												</p>
-											</div>
-										</div>
-										<ChevronRight
-											className={`w-5 h-5 transition-transform ${
-												selectedPatient?.id === patient.id
-													? 'text-[#8b5cf6]'
-													: 'text-white/30'
-											}`}
-										/>
-									</button>
-								))}
-							</div>
-						)}
-					</div>
-
-					<div className='md:col-span-8'>
-						{!selectedPatient ? (
-							<div className='glass-card p-6 flex flex-col items-center justify-center h-full py-12'>
-								<Activity className='w-16 h-16 text-white/10 mb-4' />
-								<p className='text-white/50 text-center'>
-									Выберите пациента, чтобы просмотреть историю его эмоций
-								</p>
-							</div>
-						) : (
-							<>
-								<div className='glass-card p-6 mb-6'>
-									<div className='flex items-center justify-between mb-6'>
-										<h2 className='text-lg font-semibold text-white flex items-center gap-2'>
-											<Activity className='w-5 h-5 text-[#8b5cf6]' />
-											{selectedPatient.first_name} {selectedPatient.last_name}
-										</h2>
-										<button
-											onClick={() => setSelectedPatient(null)}
-											className='text-white/50 hover:text-white flex items-center gap-1'
-										>
-											<ChevronLeft className='w-4 h-4' />
-											<span className='text-sm'>Назад</span>
-										</button>
-									</div>
-
-									{loadingEmotions ? (
-										<div className='flex items-center justify-center py-12'>
-											<Loader2 className='w-8 h-8 text-[#8b5cf6] animate-spin' />
-										</div>
-									) : patientEmotions.length === 0 ? (
-										<div className='text-center py-12'>
-											<MessageSquare className='w-12 h-12 text-white/10 mx-auto mb-3' />
-											<p className='text-white/50'>
-												У этого пациента пока нет записей
-											</p>
-										</div>
+					{user?.psychologist_code && (
+						<div className='glass-card p-4 mb-6'>
+							<div className='flex flex-col md:flex-row items-start md:items-center justify-between gap-4'>
+								<div>
+									<p className='text-white/60 text-sm mb-1'>
+										Ваш уникальный код для пациентов:
+									</p>
+									<p className='text-2xl font-mono font-bold text-[#c4a7e7] tracking-wider'>
+										{user.psychologist_code}
+									</p>
+								</div>
+								<button
+									onClick={copyCode}
+									className={`glass-button flex items-center gap-2 px-4 py-2 ${
+										copied ? 'bg-[#22c55e]/20 border-[#22c55e]/30' : ''
+									}`}
+								>
+									{copied ? (
+										<>
+											<Check className='w-5 h-5 text-[#22c55e]' />
+											<span className='text-[#22c55e]'>Скопировано!</span>
+										</>
 									) : (
 										<>
-											{getEmotionStats()}
-											{renderEmotionChart()}
+											<Copy className='w-5 h-5' />
+											<span>Скопировать</span>
 										</>
 									)}
+								</button>
+							</div>
+						</div>
+					)}
+
+					<div className='grid md:grid-cols-12 gap-6'>
+						<div className='md:col-span-4 glass-card p-6'>
+							<h2 className='text-lg font-semibold text-white mb-4 flex items-center gap-2'>
+								<Users className='w-5 h-5 text-[#8b5cf6]' />
+								Мои пациенты
+							</h2>
+
+							{loading ? (
+								<div className='flex items-center justify-center py-8'>
+									<Loader2 className='w-8 h-8 text-[#8b5cf6] animate-spin' />
 								</div>
-
-								<div className='glass-card p-6'>
-									<h3 className='text-white font-medium mb-4 flex items-center gap-2'>
-										<MessageSquare className='w-5 h-5 text-[#8b5cf6]' />
-										Взаимодействие с пациентом
-									</h3>
-
-									<div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-										{/* Запись на прием */}
-										<button className='group bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#8b5cf6]/50 rounded-xl p-6 transition-all duration-300 flex flex-col items-center gap-3'>
-											<div className='w-12 h-12 rounded-full bg-gradient-to-br from-[#8b5cf6]/30 to-[#6d28d9]/20 group-hover:from-[#8b5cf6]/40 group-hover:to-[#6d28d9]/30 flex items-center justify-center transition-all border border-[#8b5cf6]/30'>
-												<Plus className='w-6 h-6 text-[#c4a7e7]' />
+							) : patients.length === 0 ? (
+								<div className='text-center py-8'>
+									<Users className='w-12 h-12 text-white/20 mx-auto mb-3' />
+									<p className='text-white/50'>Пока нет пациентов</p>
+									<p className='text-white/30 text-sm mt-2'>
+										Поделитесь своим кодом, чтобы пациенты могли привязаться
+									</p>
+								</div>
+							) : (
+								<div className='space-y-2'>
+									{patients.map(patient => (
+										<button
+											key={patient.id}
+											onClick={() => setSelectedPatient(patient)}
+											className={`w-full p-4 rounded-xl border transition-all duration-300 flex items-center justify-between ${
+												selectedPatient?.id === patient.id
+													? 'bg-[#8b5cf6]/20 border-[#8b5cf6]/50'
+													: 'bg-white/5 border-white/10 hover:bg-white/10'
+											}`}
+										>
+											<div className='flex items-center gap-3'>
+												<div className='w-10 h-10 rounded-full bg-gradient-to-br from-[#8b5cf6] to-[#6d28d9] flex items-center justify-center'>
+													<User className='w-5 h-5 text-white' />
+												</div>
+												<div className='text-left'>
+													<p className='text-white font-medium'>
+														{patient.first_name} {patient.last_name}
+													</p>
+													<p className='text-white/40 text-sm flex items-center gap-1'>
+														<Mail className='w-3 h-3' />
+														{patient.email}
+													</p>
+												</div>
 											</div>
-											<div className='text-center'>
-												<p className='text-white font-medium mb-1'>
-													Записать на прием
-												</p>
-												<p className='text-white/40 text-sm'>
-													Добавить новую сессию
-												</p>
-											</div>
+											<ChevronRight
+												className={`w-5 h-5 transition-transform ${
+													selectedPatient?.id === patient.id
+														? 'text-[#8b5cf6]'
+														: 'text-white/30'
+												}`}
+											/>
 										</button>
+									))}
+								</div>
+							)}
+						</div>
 
-										{/* Чат с пациентом */}
-										<button className='group bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#8b5cf6]/50 rounded-xl p-6 transition-all duration-300 flex flex-col items-center gap-3'>
-											<div className='w-12 h-12 rounded-full bg-gradient-to-br from-[#8b5cf6]/30 to-[#6d28d9]/20 group-hover:from-[#8b5cf6]/40 group-hover:to-[#6d28d9]/30 flex items-center justify-center transition-all border border-[#8b5cf6]/30'>
-												<MessageSquare className='w-6 h-6 text-[#c4a7e7]' />
+						<div className='md:col-span-8'>
+							{!selectedPatient ? (
+								<div className='glass-card p-6 flex flex-col items-center justify-center h-full py-12'>
+									<Activity className='w-16 h-16 text-white/10 mb-4' />
+									<p className='text-white/50 text-center'>
+										Выберите пациента, чтобы просмотреть историю его эмоций
+									</p>
+								</div>
+							) : (
+								<>
+									<div className='glass-card p-6 mb-6'>
+										<div className='flex items-center justify-between mb-6'>
+											<h2 className='text-lg font-semibold text-white flex items-center gap-2'>
+												<Activity className='w-5 h-5 text-[#8b5cf6]' />
+												{selectedPatient.first_name} {selectedPatient.last_name}
+											</h2>
+											<button
+												onClick={() => setSelectedPatient(null)}
+												className='text-white/50 hover:text-white flex items-center gap-1'
+											>
+												<ChevronLeft className='w-4 h-4' />
+												<span className='text-sm'>Назад</span>
+											</button>
+										</div>
+
+										{loadingEmotions ? (
+											<div className='flex items-center justify-center py-12'>
+												<Loader2 className='w-8 h-8 text-[#8b5cf6] animate-spin' />
 											</div>
-											<div className='text-center'>
-												<p className='text-white font-medium mb-1'>
-													Открыть чат
-												</p>
-												<p className='text-white/40 text-sm'>
-													Написать пациенту
+										) : patientEmotions.length === 0 ? (
+											<div className='text-center py-12'>
+												<MessageSquare className='w-12 h-12 text-white/10 mx-auto mb-3' />
+												<p className='text-white/50'>
+													У этого пациента пока нет записей
 												</p>
 											</div>
-										</button>
+										) : (
+											<>
+												{getEmotionStats()}
+												{renderEmotionChart()}
+											</>
+										)}
 									</div>
-								</div>
-							</>
-						)}
+
+									<div className='glass-card p-6'>
+										<h3 className='text-white font-medium mb-4 flex items-center gap-2'>
+											<MessageSquare className='w-5 h-5 text-[#8b5cf6]' />
+											Взаимодействие с пациентом
+										</h3>
+
+										<div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+											{/* Запись на прием */}
+											<button className='group bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#8b5cf6]/50 rounded-xl p-6 transition-all duration-300 flex flex-col items-center gap-3'>
+												<div className='w-12 h-12 rounded-full bg-gradient-to-br from-[#8b5cf6]/30 to-[#6d28d9]/20 group-hover:from-[#8b5cf6]/40 group-hover:to-[#6d28d9]/30 flex items-center justify-center transition-all border border-[#8b5cf6]/30'>
+													<Plus className='w-6 h-6 text-[#c4a7e7]' />
+												</div>
+												<div className='text-center'>
+													<p className='text-white font-medium mb-1'>
+														Записать на прием
+													</p>
+													<p className='text-white/40 text-sm'>
+														Добавить новую сессию
+													</p>
+												</div>
+											</button>
+
+											{/* Чат с пациентом */}
+											<button className='group bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#8b5cf6]/50 rounded-xl p-6 transition-all duration-300 flex flex-col items-center gap-3'>
+												<div className='w-12 h-12 rounded-full bg-gradient-to-br from-[#8b5cf6]/30 to-[#6d28d9]/20 group-hover:from-[#8b5cf6]/40 group-hover:to-[#6d28d9]/30 flex items-center justify-center transition-all border border-[#8b5cf6]/30'>
+													<MessageSquare className='w-6 h-6 text-[#c4a7e7]' />
+												</div>
+												<div className='text-center'>
+													<p className='text-white font-medium mb-1'>
+														Открыть чат
+													</p>
+													<p className='text-white/40 text-sm'>
+														Написать пациенту
+													</p>
+												</div>
+											</button>
+										</div>
+									</div>
+								</>
+							)}
+						</div>
 					</div>
 				</div>
 			</div>
-		</div>
+		</BackgroundGradientAnimation>
 	)
 }
 

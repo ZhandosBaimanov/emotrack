@@ -9,6 +9,7 @@ import {
 	SessionCalendar,
 	TherapistCard,
 } from '../components/dashboard'
+import { BackgroundGradientAnimation } from '../components/ui/background-gradient-animation'
 
 const PatientDashboard = () => {
 	const [emotions, setEmotions] = useState([])
@@ -116,36 +117,48 @@ const PatientDashboard = () => {
 
 	if (loading) {
 		return (
-			<div className='min-h-screen flex items-center justify-center'>
+			<div className='min-h-screen flex items-center justify-center bg-[#1a1a2e]'>
 				<Loader2 className='w-8 h-8 text-[#8b5cf6] animate-spin' />
 			</div>
 		)
 	}
 
 	return (
-		<div className='min-h-screen p-4 md:p-6 lg:p-8'>
-			<div className='max-w-7xl mx-auto'>
-				<DashboardHeader activeTab='home' />
+		<BackgroundGradientAnimation
+			gradientBackgroundStart='rgb(26, 26, 46)'
+			gradientBackgroundEnd='rgb(30, 64, 175)'
+			firstColor='109, 40, 217'
+			secondColor='139, 92, 246'
+			thirdColor='67, 56, 202'
+			fourthColor='30, 64, 175'
+			fifthColor='196, 167, 231'
+			pointerColor='139, 92, 246'
+			className='absolute inset-0 z-20 overflow-y-auto'
+		>
+			<div className='min-h-screen p-4 md:p-6 lg:p-8'>
+				<div className='max-w-7xl mx-auto'>
+					<DashboardHeader activeTab='home' />
 
-				<div className='grid grid-cols-1 lg:grid-cols-12 gap-6'>
-					<div className='lg:col-span-4 flex flex-col gap-6'>
-						<AIJournal />
-					</div>
+					<div className='grid grid-cols-1 lg:grid-cols-12 gap-6'>
+						<div className='lg:col-span-4 flex flex-col gap-6'>
+							<AIJournal />
+						</div>
 
-					<div className='lg:col-span-4 flex flex-col gap-6'>
-						<MoodTracker emotions={emotions} onAddEmotion={handleAddEmotion} />
-						<SessionCalendar sessions={sessions} />
-					</div>
+						<div className='lg:col-span-4 flex flex-col gap-6'>
+							<MoodTracker emotions={emotions} onAddEmotion={handleAddEmotion} />
+							<SessionCalendar sessions={sessions} />
+						</div>
 
-					<div className='lg:col-span-4 flex flex-col gap-6'>
-						<TherapistCard
-							psychologist={psychologist}
-							recommendedPsychologists={recommendedPsychologists}
-						/>
+						<div className='lg:col-span-4 flex flex-col gap-6'>
+							<TherapistCard
+								psychologist={psychologist}
+								recommendedPsychologists={recommendedPsychologists}
+							/>
+						</div>
 					</div>
 				</div>
 			</div>
-		</div>
+		</BackgroundGradientAnimation>
 	)
 }
 
