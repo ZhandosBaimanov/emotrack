@@ -115,11 +115,11 @@ const Login = () => {
 									<div className='absolute inset-0 flex items-center'>
 										<div className='w-full border-t border-white/10'></div>
 									</div>
-									<div className='relative flex justify-center text-sm'>
-										<span className='px-4 bg-[#1a1a2e] text-white/50'>
-											или войдите с помощью
-										</span>
-									</div>
+							<div className='relative flex justify-center text-sm'>
+								<span className='px-4 bg-white/10 text-white/50'>
+									или войдите с помощью
+								</span>
+							</div>
 								</div>
 
 								{/* Error Message */}
